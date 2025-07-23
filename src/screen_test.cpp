@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
 #define LV_CONF_INCLUDE_SIMPLE
-#include <lv_demo.h>
+#include <lv_demo_widgets.h>
 #include <TFT_eSPI.h>
 
 TFT_eSPI tft = TFT_eSPI();  // Uses your User_Setup.h config
@@ -41,9 +41,7 @@ void setup() {
   lv_obj_t *label = lv_label_create(lv_scr_act());
   lv_label_set_text(label, "Hello, LVGL!");
   lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
-  // lv_demo_widgets();
-  char *demo_info[] = { (char*)"widgets" };
-  lv_demos_create(demo_info, 1);
+  lv_demo_widgets();
 }
 
 void loop() {

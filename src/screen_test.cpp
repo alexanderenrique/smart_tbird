@@ -1,7 +1,6 @@
 #include <Arduino.h>
 
-#define LV_CONF_INCLUDE_SIMPLE
-#include <lv_demo_widgets.h>
+#include "widgets/lv_demo_widgets.h"
 #include <TFT_eSPI.h>
 
 TFT_eSPI tft = TFT_eSPI();  // Uses your User_Setup.h config

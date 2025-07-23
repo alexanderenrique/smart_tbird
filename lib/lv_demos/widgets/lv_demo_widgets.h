@@ -13,7 +13,7 @@
  /*********************
   *      INCLUDES
   *********************/
- #include "lv_demos.h"
+ #include <lvgl.h>
  
  /*********************
   *      DEFINES

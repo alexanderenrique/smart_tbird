@@ -96,7 +96,7 @@ void setup() {
 }
 
 void loop() {
-  lv_tick_inc(5);
+  lv_tick_inc(20);
   lv_timer_handler();
-  delay(5);
+  delay(20);
 } 

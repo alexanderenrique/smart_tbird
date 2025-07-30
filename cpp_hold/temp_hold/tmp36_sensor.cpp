@@ -5,10 +5,13 @@
 #define VREF 3.3      // ESP32 reference voltage
 #define ADC_RESOLUTION 4095.0  // 12-bit ADC
 
+// Temperature calibration offset (adjust this based on your sensor)
+#define TEMP_OFFSET 11.41  // Offset in degrees Celsius
+
 // Temperature sensor variables
 static float current_temp = 0.0;
 static unsigned long last_reading = 0;
-static const unsigned long READING_INTERVAL = 1000; // Read every 1 second
+static const unsigned long READING_INTERVAL = 5000; // Read every 5 seconds
 
 // Function to read temperature from TMP36
 float readTemperature() {
@@ -20,6 +23,9 @@ float readTemperature() {
     
     // Convert voltage to temperature (TMP36: 10mV/°C, 0.5V at 0°C)
     float temperature = (voltage - 0.5) * 100.0;
+    
+    // Apply calibration offset
+    temperature += TEMP_OFFSET;
     
     return temperature;
 }
@@ -38,26 +44,20 @@ void initTMP36() {
 // Function to update temperature reading
 void updateTemperature() {
     if (millis() - last_reading >= READING_INTERVAL) {
+        // Read analog value and calculate voltage
+        int adc_value = analogRead(TMP36_PIN);
+        float voltage = (adc_value / ADC_RESOLUTION) * VREF;
+        
         current_temp = readTemperature();
         last_reading = millis();
+        
+        // Print raw values for debugging
+        Serial.printf("📊 Raw ADC: %d | Voltage: %.3fV\n", adc_value, voltage);
         
         // Print temperature reading
         Serial.printf("🌡️ Temperature: %.2f°C (%.2f°F)\n", 
                      current_temp, (current_temp * 9.0/5.0) + 32.0);
         
-        // Print status
-        if (current_temp < 0) {
-            Serial.println("❄️ Status: Cold");
-        } else if (current_temp < 20) {
-            Serial.println("🌤️ Status: Cool");
-        } else if (current_temp < 30) {
-            Serial.println("☀️ Status: Normal");
-        } else if (current_temp < 40) {
-            Serial.println("🔥 Status: Warm");
-        } else {
-            Serial.println("🌋 Status: Hot");
-        }
-        Serial.println("----------------------------------------");
     }
 }
 

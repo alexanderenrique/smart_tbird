@@ -8,6 +8,9 @@ const char* ssid = "SmartThunderbird";
 const char* password = "12345678";
 const char* server_url = "http://192.168.4.1:8080/sensor";
 
+// LED Configuration
+#define LED_PIN 8  // Built-in LED on ESP32-C3 (pin 2 on other ESP32 boards)
+
 // WiFi client
 WiFiClient client;
 HTTPClient http;
@@ -20,20 +23,29 @@ void setupWiFi() {
     Serial.println("📡 Connecting to WiFi AP...");
     Serial.printf("SSID: %s\n", ssid);
     
+    // Start with LED off (HIGH for active LOW LED)
+    digitalWrite(LED_PIN, HIGH);
+    
     WiFi.begin(ssid, password);
     
     int attempts = 0;
     while (WiFi.status() != WL_CONNECTED && attempts < 20) {
-        delay(500);
+        // Flash LED while connecting (faster flash)
+        digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+        delay(200);  // Flash every 200ms instead of 500ms
         Serial.print(".");
         attempts++;
     }
     
     if (WiFi.status() == WL_CONNECTED) {
+        // Turn LED solid on when connected (LOW for active LOW LED)
+        digitalWrite(LED_PIN, LOW);
         Serial.println();
         Serial.println("✅ WiFi connected!");
         Serial.printf("IP Address: %s\n", WiFi.localIP().toString().c_str());
     } else {
+        // Keep LED off if connection failed (HIGH for active LOW LED)
+        digitalWrite(LED_PIN, HIGH);
         Serial.println();
         Serial.println("❌ WiFi connection failed!");
     }
@@ -42,6 +54,8 @@ void setupWiFi() {
 void sendSensorData(float temperature, float humidity) {
     if (WiFi.status() != WL_CONNECTED) {
         Serial.println("❌ WiFi not connected, attempting to reconnect...");
+        // Turn off LED when WiFi disconnects (HIGH for active LOW LED)
+        digitalWrite(LED_PIN, HIGH);
         setupWiFi();
         return;
     }
@@ -69,6 +83,11 @@ void setup() {
     Serial.begin(9600);
     Serial.println("🌡️ SHT31 WiFi Sensor Client");
     Serial.println("============================");
+    
+    // Initialize LED pin and turn it ON
+    pinMode(LED_PIN, OUTPUT);
+    digitalWrite(LED_PIN, LOW);  // Turn LED ON (active LOW)
+    Serial.println("💡 LED should be ON now");
     
     // Initialize the SHT31 sensor
     initSHT31();

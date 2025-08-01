@@ -1,8 +1,8 @@
 #include "sht31_sensor.h"
 
 // I2C pin configuration (ESP32 defaults)
-#define SDA_PIN 21  // I2C Data pin
-#define SCL_PIN 22  // I2C Clock pin
+#define SDA_PIN 8  // I2C Data pin
+#define SCL_PIN 9  // I2C Clock pin
 
 // SHT31 sensor instance
 Adafruit_SHT31 sht31 = Adafruit_SHT31();
@@ -11,7 +11,7 @@ Adafruit_SHT31 sht31 = Adafruit_SHT31();
 static float current_temp = 0.0;
 static float current_humidity = 0.0;
 static unsigned long last_reading = 0;
-static const unsigned long READING_INTERVAL = 5000; // Read every 2 seconds
+static const unsigned long READING_INTERVAL = 5000; // Read every 5 seconds
 
 // Function to initialize SHT31 sensor
 void initSHT31() {

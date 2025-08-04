@@ -40,8 +40,8 @@
 #include "sht31_sensor.h"
 
 // I2C pin configuration (ESP32 defaults)
-#define SDA_PIN 8  // I2C Data pin
-#define SCL_PIN 9  // I2C Clock pin
+#define SDA_PIN 6  // I2C Data pin
+#define SCL_PIN 7  // I2C Clock pin
 
 // SHT31 sensor instance
 Adafruit_SHT31 sht31 = Adafruit_SHT31();

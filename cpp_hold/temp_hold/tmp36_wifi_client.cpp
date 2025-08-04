@@ -1,3 +1,38 @@
+/*
+ * TMP36 WiFi Sensor Client
+ * ========================
+ * 
+ * PURPOSE:
+ * Sensor client that reads TMP36 temperature data and sends it via WiFi to the main
+ * display unit. Uses the tmp36_sensor.h library for reliable sensor communication.
+ * 
+ * ENVIRONMENT:
+ * - Hardware: ESP32 with TMP36 sensor
+ * - Platform: PlatformIO with Arduino framework
+ * - Libraries: WiFi, HTTPClient, tmp36_sensor.h
+ * 
+ * FUNCTIONALITY:
+ * 1. Connects to WiFi network "SmartThunderbird" (password: 12345678)
+ * 2. Initializes TMP36 sensor using the sensor library
+ * 3. Reads temperature data with ADC conversion and calibration
+ * 4. Sends temperature data via HTTP POST to main display unit every 5 seconds
+ * 5. Provides comprehensive serial debug output
+ * 6. Includes automatic WiFi reconnection
+ * 
+ * CONNECTIONS:
+ * - TMP36 VCC → ESP32 3.3V
+ * - TMP36 GND → ESP32 GND
+ * - TMP36 VOUT → ESP32 GPIO 32 (ADC1_CH0)
+ * 
+ * NETWORK:
+ * - Server URL: http://192.168.4.1:8080/sensor
+ * - Sends temperature data only (no humidity)
+ * 
+ * USAGE:
+ * Upload to ESP32 with TMP36 sensor. Uses the tmp36_sensor.h library for
+ * reliable sensor communication and sends temperature data to the main display unit.
+ */
+
 #include <Arduino.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -20,6 +55,15 @@ void setupWiFi() {
     Serial.println("📡 Connecting to WiFi AP...");
     Serial.printf("SSID: %s\n", ssid);
     
+    // Configure static IP - no DHCP
+    IPAddress staticIP(192, 168, 4, 102);    // Static IP for this device
+    IPAddress gateway(192, 168, 4, 1);       // Gateway (AP IP)
+    IPAddress subnet(255, 255, 255, 0);      // Subnet mask
+    IPAddress dns(192, 168, 4, 1);           // DNS server (same as gateway)
+    
+    // Configure WiFi with static IP
+    WiFi.config(staticIP, gateway, subnet, dns);
+    
     WiFi.begin(ssid, password);
     
     int attempts = 0;
@@ -32,7 +76,8 @@ void setupWiFi() {
     if (WiFi.status() == WL_CONNECTED) {
         Serial.println();
         Serial.println("✅ WiFi connected!");
-        Serial.printf("IP Address: %s\n", WiFi.localIP().toString().c_str());
+        Serial.printf("Static IP Address: %s\n", WiFi.localIP().toString().c_str());
+        Serial.println("⚠️  Using static IP - DHCP disabled");
     } else {
         Serial.println();
         Serial.println("❌ WiFi connection failed!");

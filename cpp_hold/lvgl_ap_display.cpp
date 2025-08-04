@@ -1,3 +1,37 @@
+/*
+ * Smart Thunderbird AP Display - Main Application
+ * ===============================================
+ * 
+ * PURPOSE:
+ * This is the main application for the Smart Thunderbird project. It creates a WiFi Access Point
+ * with a touchscreen display that shows sensor data received from connected devices.
+ * 
+ * ENVIRONMENT:
+ * - Hardware: ESP32 with TFT touchscreen display (480x320 resolution)
+ * - Platform: PlatformIO with Arduino framework
+ * - Libraries: LVGL (GUI), TFT_eSPI (display), WiFi, WebServer
+ * 
+ * FUNCTIONALITY:
+ * 1. Creates WiFi Access Point "SmartThunderbird" (password: 12345678)
+ * 2. Runs web server on port 8080 to receive sensor data via HTTP POST
+ * 3. Displays sensor data UI with:
+ *    - Real-time temperature display from connected sensors
+ *    - Real-time humidity display from connected sensors
+ *    - Status indicators with color coding
+ *    - IP address display
+ * 4. Receives temperature and humidity data from SHT31 sensors via HTTP
+ * 5. Updates display in real-time as sensor data arrives
+ * 
+ * CONNECTIONS:
+ * - TFT Display: Uses TFT_eSPI library with custom pin configuration
+ * - Touch Input: Integrated capacitive touch on display
+ * - WiFi: Built-in ESP32 WiFi for AP mode
+ * 
+ * USAGE:
+ * Upload this to the main ESP32 display unit. Other sensor devices will connect
+ * to the WiFi AP and send data to this display.
+ */
+
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 #include <lvgl.h>
@@ -18,14 +52,14 @@ const int port = 8080;
 WebServer server(port);
 
 // Display variables
-static int press_count = 0;
-static lv_obj_t *counter_label = NULL;
 static lv_obj_t *temp_label = NULL;
+static lv_obj_t *humidity_label = NULL;
 static lv_obj_t *status_label = NULL;
 static lv_obj_t *ip_label = NULL;
 
-// Temperature data from sensor
+// Sensor data from sensors
 static float received_temp = 0.0;
+static float received_humidity = 0.0;
 static String sensor_status = "No sensor connected";
 
 void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p) {
@@ -48,83 +82,96 @@ void my_touchpad_read(lv_indev_drv_t * indev_driver, lv_indev_data_t * data) {
   }
 }
 
-void btn_event_cb(lv_event_t * e) {
-  lv_event_code_t code = lv_event_get_code(e);
-
-  if (code == LV_EVENT_CLICKED) {
-      press_count++;
-      if (counter_label) {
-          static char buf[32];
-          snprintf(buf, sizeof(buf), "Presses: %d", press_count);
-          lv_label_set_text(counter_label, buf);
-          Serial.printf("✅ Button pressed! Count: %d\n", press_count);
-      }
-  }
-}
-
 // Web server handlers
 void handleRoot() {
     String html = "<html><body>";
     html += "<h1>Smart Thunderbird Sensor Hub</h1>";
-    html += "<p>Button Presses: " + String(press_count) + "</p>";
-    html += "<p>Temperature: " + String(received_temp, 2) + "°C</p>";
+    float temp_f = (received_temp * 9.0/5.0) + 32.0;  // Convert C to F
+    html += "<p>Temperature: " + String(temp_f, 1) + "°F</p>";
+    html += "<p>Humidity: " + String(received_humidity, 1) + "%</p>";
     html += "<p>Status: " + sensor_status + "</p>";
     html += "</body></html>";
     server.send(200, "text/html", html);
 }
 
 void handleSensorData() {
-    if (server.hasArg("temp")) {
-        received_temp = server.arg("temp").toFloat();
+    bool has_temp = server.hasArg("temp");
+    bool has_humidity = server.hasArg("humidity");
+    
+    if (has_temp || has_humidity) {
+        if (has_temp) {
+            received_temp = server.arg("temp").toFloat();
+        }
+        if (has_humidity) {
+            received_humidity = server.arg("humidity").toFloat();
+        }
         sensor_status = "Connected";
         
-        // Update display
+        // Update temperature display
         if (temp_label) {
             static char temp_buf[32];
-            snprintf(temp_buf, sizeof(temp_buf), "%.1f°C", received_temp);
+            float temp_f = (received_temp * 9.0/5.0) + 32.0;  // Convert C to F
+            snprintf(temp_buf, sizeof(temp_buf), "%.1f°F", temp_f);
             lv_label_set_text(temp_label, temp_buf);
+        }
+        
+        // Update humidity display
+        if (humidity_label) {
+            static char humidity_buf[32];
+            snprintf(humidity_buf, sizeof(humidity_buf), "%.1f%%", received_humidity);
+            lv_label_set_text(humidity_label, humidity_buf);
         }
         
         if (status_label) {
             static char status_buf[64];
             const char* temp_status = "Normal";
-            if (received_temp < 0) temp_status = "Cold";
-            else if (received_temp < 20) temp_status = "Cool";
-            else if (received_temp < 30) temp_status = "Normal";
-            else if (received_temp < 40) temp_status = "Warm";
-            else temp_status = "Hot";
+            // Convert temperature thresholds to Fahrenheit
+            if (received_temp < 0) temp_status = "Cold";      // < 32°F
+            else if (received_temp < 20) temp_status = "Cool"; // < 68°F
+            else if (received_temp < 30) temp_status = "Normal"; // < 86°F
+            else if (received_temp < 40) temp_status = "Warm"; // < 104°F
+            else temp_status = "Hot";                          // >= 104°F
             
             snprintf(status_buf, sizeof(status_buf), "Status: %s", temp_status);
             lv_label_set_text(status_label, status_buf);
             
-            // Change color based on temperature
+            // Change color based on temperature (using Celsius thresholds)
             if (received_temp > 30) {
-                lv_obj_set_style_text_color(status_label, lv_color_hex(0xFF0000), 0); // Red
+                lv_obj_set_style_text_color(status_label, lv_color_hex(0xFF0000), 0); // Red (>86°F)
             } else if (received_temp < 10) {
-                lv_obj_set_style_text_color(status_label, lv_color_hex(0x0000FF), 0); // Blue
+                lv_obj_set_style_text_color(status_label, lv_color_hex(0x0000FF), 0); // Blue (<50°F)
             } else {
-                lv_obj_set_style_text_color(status_label, lv_color_hex(0x00FF00), 0); // Green
+                lv_obj_set_style_text_color(status_label, lv_color_hex(0x00FF00), 0); // Green (50-86°F)
             }
         }
         
-        Serial.printf("📡 Received temperature: %.2f°C\n", received_temp);
+        Serial.printf("📡 Received - Temp: %.2f°C (%.1f°F), Humidity: %.1f%%\n", 
+                     received_temp, (received_temp * 9.0/5.0) + 32.0, received_humidity);
         server.send(200, "text/plain", "OK");
     } else {
-        server.send(400, "text/plain", "Missing temperature data");
+        server.send(400, "text/plain", "Missing sensor data");
     }
 }
 
 void setupWiFiAP() {
     Serial.println("📡 Setting up WiFi Access Point...");
     
-    // Configure WiFi AP
-    WiFi.softAP(ssid, password);
+    // Configure WiFi AP with explicit channel and settings
+    WiFi.softAP(ssid, password, 6);  // Channel 6 (2.437 GHz)
+    
+    // Disable DHCP server on the AP
+    WiFi.softAPConfig(IPAddress(192, 168, 4, 1), IPAddress(192, 168, 4, 1), IPAddress(255, 255, 255, 0));
     
     // Wait for AP to start
     delay(1000);
     
     IPAddress IP = WiFi.softAPIP();
     Serial.printf("🌐 AP IP address: %s\n", IP.toString().c_str());
+    Serial.printf("📡 WiFi Channel: %d (2.437 GHz)\n", WiFi.channel());
+    Serial.printf("📡 SSID: %s\n", ssid);
+    Serial.println("⚠️  DHCP is DISABLED - All devices must use static IP addresses");
+    Serial.println("   Main Display: 192.168.4.1");
+    Serial.println("   Sensor Devices: 192.168.4.100+ (static IPs required)");
     
     // Setup web server routes
     server.on("/", handleRoot);
@@ -135,32 +182,32 @@ void setupWiFiAP() {
 }
 
 void createUI() {
-    // Button
-    lv_obj_t *btn = lv_btn_create(lv_scr_act());
-    lv_obj_align(btn, LV_ALIGN_TOP_LEFT, 20, 20);
-    lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_CLICKED, NULL);
-    lv_obj_t *label = lv_label_create(btn);
-    lv_label_set_text(label, "Press Me!");
-
-    // Counter label
-    counter_label = lv_label_create(lv_scr_act());
-    lv_obj_align(counter_label, LV_ALIGN_TOP_LEFT, 20, 80);
-    lv_label_set_text(counter_label, "Presses: 0");
+    // Title label
+    lv_obj_t *title_label = lv_label_create(lv_scr_act());
+    lv_obj_align(title_label, LV_ALIGN_TOP_MID, 0, 20);
+    lv_obj_set_style_text_font(title_label, &lv_font_montserrat_20, 0);
+    lv_label_set_text(title_label, "Smart Thunderbird");
 
     // IP Address label
     ip_label = lv_label_create(lv_scr_act());
-    lv_obj_align(ip_label, LV_ALIGN_TOP_LEFT, 20, 120);
+    lv_obj_align(ip_label, LV_ALIGN_TOP_LEFT, 20, 60);
     lv_label_set_text(ip_label, "IP: 192.168.4.1");
 
     // Temperature label
     temp_label = lv_label_create(lv_scr_act());
-    lv_obj_align(temp_label, LV_ALIGN_TOP_LEFT, 20, 160);
+    lv_obj_align(temp_label, LV_ALIGN_TOP_LEFT, 20, 100);
     lv_obj_set_style_text_font(temp_label, &lv_font_montserrat_24, 0);
-    lv_label_set_text(temp_label, "0.0°C");
+    lv_label_set_text(temp_label, "0.0°F");
+
+    // Humidity label
+    humidity_label = lv_label_create(lv_scr_act());
+    lv_obj_align(humidity_label, LV_ALIGN_TOP_LEFT, 20, 140);
+    lv_obj_set_style_text_font(humidity_label, &lv_font_montserrat_24, 0);
+    lv_label_set_text(humidity_label, "0.0%");
 
     // Status label
     status_label = lv_label_create(lv_scr_act());
-    lv_obj_align(status_label, LV_ALIGN_TOP_LEFT, 20, 200);
+    lv_obj_align(status_label, LV_ALIGN_TOP_LEFT, 20, 180);
     lv_label_set_text(status_label, "Status: Waiting for sensor...");
 }
 

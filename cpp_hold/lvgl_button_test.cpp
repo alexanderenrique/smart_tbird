@@ -1,3 +1,35 @@
+/*
+ * LVGL Interactive Button Test
+ * ============================
+ * 
+ * PURPOSE:
+ * Interactive test application for LVGL GUI with touchscreen button functionality.
+ * Creates a touchable button that counts presses and displays the count on screen.
+ * 
+ * ENVIRONMENT:
+ * - Hardware: ESP32 with TFT touchscreen display (480x320 resolution)
+ * - Platform: PlatformIO with Arduino framework
+ * - Libraries: LVGL (GUI), TFT_eSPI (display)
+ * 
+ * FUNCTIONALITY:
+ * 1. Initializes TFT display and LVGL framework
+ * 2. Sets up display driver with optimized buffer size
+ * 3. Registers touch input driver
+ * 4. Creates interactive UI with:
+ *    - Touchable button labeled "Press Me!"
+ *    - Counter label showing number of button presses
+ * 5. Handles button press events and updates counter
+ * 6. Provides serial debug output for touch events
+ * 
+ * CONNECTIONS:
+ * - TFT Display: Uses TFT_eSPI library with custom pin configuration
+ * - Touch Input: Integrated capacitive touch on display
+ * 
+ * USAGE:
+ * Use this to test interactive touchscreen functionality. Touch the button
+ * to see the counter increment and verify touch input is working correctly.
+ */
+
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 #include <lvgl.h>

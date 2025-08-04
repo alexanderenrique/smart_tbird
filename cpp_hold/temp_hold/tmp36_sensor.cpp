@@ -1,3 +1,47 @@
+/*
+ * TMP36 Temperature Sensor Library
+ * ================================
+ * 
+ * PURPOSE:
+ * Library for reading temperature data from TMP36 analog temperature sensor.
+ * Provides functions for sensor initialization, data reading, and status monitoring.
+ * 
+ * ENVIRONMENT:
+ * - Hardware: ESP32 with TMP36 sensor
+ * - Platform: PlatformIO with Arduino framework
+ * - Libraries: Arduino (ADC functions)
+ * 
+ * FUNCTIONALITY:
+ * 1. Initializes ADC for TMP36 sensor reading
+ * 2. Reads temperature data every 5 seconds
+ * 3. Converts analog voltage to temperature (10mV/°C, 0.5V at 0°C)
+ * 4. Applies calibration offset for accuracy
+ * 5. Provides status indicators for temperature ranges
+ * 6. Includes safety checks and error handling
+ * 7. Serial debug output with raw ADC and voltage values
+ * 
+ * CONNECTIONS:
+ * - TMP36 VCC → ESP32 3.3V
+ * - TMP36 GND → ESP32 GND
+ * - TMP36 VOUT → ESP32 GPIO 32 (ADC1_CH0)
+ * 
+ * SENSOR SPECS:
+ * - Temperature Range: -40°C to +125°C
+ * - Output: 10mV/°C linear scale
+ * - 0.5V output at 0°C
+ * - Accuracy: ±2°C (typical)
+ * - Supply Voltage: 2.7V to 5.5V
+ * 
+ * CALIBRATION:
+ * - TEMP_OFFSET: 11.41°C (adjust based on your sensor)
+ * - ADC Resolution: 12-bit (0-4095)
+ * - Reference Voltage: 3.3V
+ * 
+ * USAGE:
+ * Include this library in sensor projects that need temperature data.
+ * Call initTMP36() in setup() and updateTemperature() in loop().
+ */
+
 #include <Arduino.h>
 
 // TMP36 sensor pin configuration

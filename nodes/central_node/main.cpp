@@ -1,19 +1,23 @@
 /*
- * Central Node - SHT31 + MPU6050 Sensors
- * =====================================
+ * Central Node - SHT31 + MPU6050 + INA219 Sensors
+ * ===============================================
  * 
- * This node reads temperature and humidity from an SHT31 sensor
- * and acceleration/gyroscope data from an MPU6050 6-axis IMU.
+ * This node reads temperature and humidity from an SHT31 sensor,
+ * acceleration/gyroscope data from an MPU6050 6-axis IMU, and
+ * battery voltage/current from an INA219 power monitor.
  * All data is transmitted via CAN bus to the display node.
  * 
  * Features:
- * - SHT31 temperature and humidity sensor
+ * - SHT31 temperature and humidity sensor (0.5Hz transmission)
  * - MPU6050 6-axis IMU with absolute max G-force tracking (100Hz sampling)
+ * - INA219 battery voltage and current monitoring (2Hz transmission)
  * - Digital Low-Pass Filtering (DLPF) for noise reduction
+ * - Smoothed real-time data transmission (2Hz for display)
  * - CAN bus communication
  * - Status LED indication
  * - Error handling and recovery
  * - Automotive G-force monitoring (acceleration, braking, cornering)
+ * - Battery health monitoring
  */
 
 #include <Arduino.h>
@@ -28,6 +32,8 @@
 // Include sensor classes
 #include "mpu6050_sensor.h"
 #include "mpu6050_can_client.h"
+#include "ina219_sensor.h"
+#include "ina219_can_client.h"
 
 // SHT31 sensor object
 Adafruit_SHT31 sht31 = Adafruit_SHT31();
@@ -35,18 +41,25 @@ Adafruit_SHT31 sht31 = Adafruit_SHT31();
 // MPU6050 sensor object
 MPU6050Sensor mpu6050(MPU6050_ADDRESS, MPU6050_SDA_PIN, MPU6050_SCL_PIN);
 
+// INA219 sensor object
+INA219Sensor ina219(INA219_ADDRESS, INA219_SDA_PIN, INA219_SCL_PIN);
+
 // CAN Manager
 CANManager* can_manager = nullptr;
 
 // Timing variables
-unsigned long last_sensor_read = 0;
+unsigned long last_mpu6050_read = 0;
+unsigned long last_sht31_read = 0;
+unsigned long last_ina219_read = 0;
 unsigned long last_heartbeat = 0;
 unsigned long last_status_send = 0;
 unsigned long last_mpu6050_max_send = 0;
+unsigned long last_mpu6050_smoothed_send = 0;
 
 // Status variables
 bool sht31_initialized = false;
 bool mpu6050_initialized = false;
+bool ina219_initialized = false;
 uint16_t error_count = 0;
 uint16_t successful_reads = 0;
 
@@ -84,6 +97,18 @@ bool initializeMPU6050() {
     }
     
     Serial.println("MPU6050 initialized successfully");
+    return true;
+}
+
+bool initializeINA219() {
+    Serial.println("Initializing INA219 sensor...");
+    
+    if (!ina219.begin(INA219_SHUNT_RESISTOR, INA219_MAX_CURRENT)) {
+        Serial.println("ERROR: Could not initialize INA219 sensor");
+        return false;
+    }
+    
+    Serial.println("INA219 initialized successfully");
     return true;
 }
 
@@ -133,9 +158,17 @@ void handleCANMessages() {
                         }
                     }
                     if (mpu6050_initialized) {
-                        MPU6050Data mpu6050_data;
-                        if (mpu6050.readSensorData(mpu6050_data)) {
-                            sendMPU6050Data(mpu6050_data);
+                        // Send smoothed data on request (no raw data transmission)
+                        MPU6050SmoothedData smoothed_data;
+                        if (mpu6050.readSmoothedData(smoothed_data)) {
+                            sendMPU6050SmoothedData(smoothed_data);
+                        }
+                    }
+                    if (ina219_initialized) {
+                        // Send battery data on request
+                        INA219Data ina219_data;
+                        if (ina219.readSensorData(ina219_data)) {
+                            sendINA219BatteryData(ina219_data);
                         }
                     }
                     break;
@@ -179,6 +212,17 @@ void sendStatusUpdate() {
     mpu6050_status.error_count = mpu6050.getErrorCount();
     
     can_manager->sendStatus(mpu6050_status);
+    
+    // Send INA219 status
+    SensorStatus ina219_status;
+    ina219_status.sensor_type = 4; // INA219
+    ina219_status.sensor_id = INA219_SENSOR_ID;
+    ina219_status.health_status = ina219_initialized ? 0 : 2; // 0=OK, 2=Error
+    ina219_status.battery_level = 100; // Placeholder - could read from ADC
+    ina219_status.uptime_seconds = millis() / 1000;
+    ina219_status.error_count = ina219.getErrorCount();
+    
+    can_manager->sendStatus(ina219_status);
 }
 
 void updateStatusLED() {
@@ -213,6 +257,7 @@ void setup() {
     // Initialize sensors
     sht31_initialized = initializeSHT31();
     mpu6050_initialized = initializeMPU6050();
+    ina219_initialized = initializeINA219();
     
     // Initialize CAN manager
     can_manager = new CANManager(NODE_ID, NODE_TYPE);
@@ -239,9 +284,8 @@ void loop() {
     // Handle CAN messages
     handleCANMessages();
     
-    // Read sensor data
-    if (current_time - last_sensor_read >= SENSOR_READ_INTERVAL) {
-        // Read SHT31 data
+    // Read SHT31 data (0.5Hz - every 2 seconds)
+    if (current_time - last_sht31_read >= SHT31_READ_INTERVAL) {
         if (sht31_initialized) {
             SHT31Data sht31_data;
             if (readSensorData(sht31_data)) {
@@ -262,32 +306,52 @@ void loop() {
             // Try to initialize sensor
             sht31_initialized = initializeSHT31();
         }
-        
-        // Read MPU6050 data
-        if (mpu6050_initialized) {
-            MPU6050Data mpu6050_data;
-            if (mpu6050.readSensorData(mpu6050_data)) {
-                // Send sensor data via CAN
-                if (sendMPU6050Data(mpu6050_data)) {
-                    // Data sent successfully
+        last_sht31_read = current_time;
+    }
+    
+    // Read INA219 data (0.2Hz - every 5 seconds)
+    if (current_time - last_ina219_read >= INA219_READ_INTERVAL) {
+        if (ina219_initialized) {
+            INA219Data ina219_data;
+            if (ina219.readSensorData(ina219_data)) {
+                // Send battery data via CAN
+                if (sendINA219BatteryData(ina219_data)) {
+                    Serial.printf("Sent INA219 data: %.3fV, %.3fA, %.3fW\n", 
+                                 rawToVoltage(ina219_data.voltage_raw),
+                                 rawToCurrent(ina219_data.current_raw),
+                                 rawToPower(ina219_data.power_raw));
                 } else {
-                    Serial.println("ERROR: Failed to send MPU6050 data");
+                    Serial.println("ERROR: Failed to send INA219 data");
                     error_count++;
                 }
             } else {
                 // Try to reinitialize sensor
+                ina219_initialized = initializeINA219();
+            }
+        } else {
+            // Try to initialize sensor
+            ina219_initialized = initializeINA219();
+        }
+        last_ina219_read = current_time;
+    }
+    
+    // Read MPU6050 data (100Hz - every 10ms for internal processing)
+    if (current_time - last_mpu6050_read >= SENSOR_READ_INTERVAL) {
+        if (mpu6050_initialized) {
+            MPU6050Data mpu6050_data;
+            if (!mpu6050.readSensorData(mpu6050_data)) {
+                // Try to reinitialize sensor if read fails
                 mpu6050_initialized = initializeMPU6050();
             }
         } else {
             // Try to initialize sensor
             mpu6050_initialized = initializeMPU6050();
         }
-        
-        last_sensor_read = current_time;
+        last_mpu6050_read = current_time;
     }
     
-    // Send MPU6050 max values every 2 seconds (absolute max since power-on)
-    if (current_time - last_mpu6050_max_send >= 2000) { // Every 2 seconds
+    // Send MPU6050 max values at 2Hz (every 500ms - absolute max since power-on)
+    if (current_time - last_mpu6050_max_send >= 500) { // Every 500ms = 2Hz
         if (mpu6050_initialized) {
             MPU6050MaxData max_data;
             if (mpu6050.readMaxValues(max_data)) {
@@ -295,6 +359,17 @@ void loop() {
             }
         }
         last_mpu6050_max_send = current_time;
+    }
+    
+    // Send MPU6050 smoothed data every 500ms (2Hz for real-time display)
+    if (current_time - last_mpu6050_smoothed_send >= 500) { // Every 500ms = 2Hz
+        if (mpu6050_initialized) {
+            MPU6050SmoothedData smoothed_data;
+            if (mpu6050.readSmoothedData(smoothed_data)) {
+                sendMPU6050SmoothedData(smoothed_data);
+            }
+        }
+        last_mpu6050_smoothed_send = current_time;
     }
     
     // Send status update
@@ -320,11 +395,15 @@ void loop() {
     if (current_time - last_status_print >= 60000) {
         Serial.printf("Status: Reads=%d, Errors=%d, Queue=%d\n", 
                      successful_reads, error_count, can_manager->getQueueCount());
-        Serial.printf("SHT31: %s, MPU6050: %s\n", 
+        Serial.printf("SHT31: %s, MPU6050: %s, INA219: %s\n", 
                      sht31_initialized ? "OK" : "ERROR",
-                     mpu6050_initialized ? "OK" : "ERROR");
+                     mpu6050_initialized ? "OK" : "ERROR",
+                     ina219_initialized ? "OK" : "ERROR");
         if (mpu6050_initialized) {
             mpu6050.printStatus();
+        }
+        if (ina219_initialized) {
+            ina219.printStatus();
         }
         last_status_print = current_time;
     }

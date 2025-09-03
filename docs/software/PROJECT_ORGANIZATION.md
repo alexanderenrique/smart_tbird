@@ -12,7 +12,13 @@ smart_tbird/
 │   ├── display_node/              # Main display unit (ESP32 + TFT)
 │   │   ├── main.cpp              # Display node main code
 │   │   └── lv_conf.h             # LVGL configuration
-│   ├── sht31_node/               # SHT31 temperature/humidity sensor
+│   ├── central_node/              # Central sensor hub (ESP32 + SHT31 + MPU6050)
+│   │   ├── main.cpp              # Central node main code
+│   │   ├── mpu6050_sensor.h      # MPU6050 sensor class header
+│   │   ├── mpu6050_sensor.cpp    # MPU6050 sensor implementation
+│   │   ├── mpu6050_can_client.h  # MPU6050 CAN client header
+│   │   └── mpu6050_can_client.cpp # MPU6050 CAN client implementation
+│   ├── sht31_node/               # SHT31 temperature/humidity sensor (legacy)
 │   │   ├── main.cpp              # SHT31 node main code
 │   │   ├── sht31_sensor.cpp      # SHT31 sensor library
 │   │   ├── sht31_sensor.h        # SHT31 sensor header
@@ -24,7 +30,6 @@ smart_tbird/
 │   │   ├── tmp36_sensor.h        # TMP36 sensor header
 │   │   ├── tmp36_can_client.cpp  # TMP36 CAN client
 │   │   └── tmp36_wifi_client.cpp # Legacy WiFi client
-
 │   └── shared/                   # Shared libraries and utilities
 │       ├── can_lib/              # CAN communication library
 │       │   ├── can_messages.h    # CAN message definitions
@@ -52,19 +57,51 @@ smart_tbird/
 - **Features**: LVGL GUI, touch interface, real-time data visualization, LDR auto-dimming
 - **Build Command**: `pio run -e display_node`
 
-### 2. SHT31 Node (ESP32-C3 + SHT31 Sensor)
-- **Hardware**: ESP32-C3, SHT31 temperature/humidity sensor, MCP2515
-- **Function**: Reads temperature and humidity, transmits via CAN
-- **Features**: I2C communication, error handling, status reporting
-- **Build Command**: `pio run -e sht31_node`
+### 2. Central Node (ESP32 + SHT31 + MPU6050) - **PRIMARY SENSOR HUB**
+- **Hardware**: ESP32, SHT31 temperature/humidity sensor, MPU6050 6-axis IMU, MCP2515
+- **Function**: Comprehensive sensor hub providing environmental and motion data
+- **Features**: 
+  - SHT31 temperature/humidity monitoring
+  - MPU6050 6-axis IMU with 100Hz sampling
+  - Digital Low-Pass Filtering (DLPF) for noise reduction
+  - Moving average smoothing for real-time display
+  - Absolute maximum G-force tracking since power-on
+  - Automotive G-force monitoring (acceleration, braking, cornering)
+- **Data Transmission**:
+  - Smoothed G-force data at 2Hz (every 500ms) for real-time display
+  - Absolute maximum G-forces at 2Hz (every 500ms) for peak monitoring
+  - Temperature/humidity data at 0.5Hz (every 2 seconds)
+- **Build Command**: `pio run -e central_node`
 
-### 3. TMP36 Node (ESP32 + TMP36 Sensor)
-- **Hardware**: ESP32, TMP36 analog temperature sensor, MCP2515
-- **Function**: Reads temperature from analog sensor, transmits via CAN
-- **Features**: Analog reading, voltage conversion, temperature calculation
-- **Build Command**: `pio run -e tmp36_node`
 
 
+## MPU6050 IMU Features (Central Node)
+
+### High-Performance Motion Sensing
+The central node includes a comprehensive MPU6050 6-axis IMU implementation optimized for automotive applications:
+
+#### Sampling and Filtering
+- **100Hz raw sampling rate** for maximum data capture
+- **Digital Low-Pass Filtering (DLPF)** with ~44Hz cutoff frequency
+- **50-sample moving average smoothing** (0.5-second window)
+- **2Hz smoothed data transmission** for real-time display
+
+#### G-Force Monitoring
+- **X-axis**: Forward/backward acceleration (acceleration/braking)
+- **Y-axis**: Left/right acceleration (cornering forces)
+- **Z-axis**: Up/down acceleration (bumps, hills, impacts)
+- **Absolute maximum tracking** since power-on (no automatic resets)
+
+#### Data Transmission
+- **Smoothed G-force data**: 2Hz (every 500ms) for smooth dashboard display
+- **Absolute maximum values**: 2Hz (every 500ms) for peak G-force monitoring
+- **Optimized CAN bus usage**: No raw data transmission to reduce bus load
+
+#### Automotive Applications
+- **Performance monitoring**: Track acceleration, braking, and cornering
+- **Safety analysis**: Monitor maximum forces experienced
+- **Driving behavior**: Analyze G-force patterns
+- **Impact detection**: Identify sudden changes in motion
 
 ## Shared Libraries
 
@@ -92,6 +129,12 @@ smart_tbird/
   - Data structures for all sensor types
   - Utility functions for data conversion
   - Error codes and status definitions
+- **Current Message Types**:
+  - `CAN_MSG_SHT31_TEMP_HUMIDITY` (0x101): SHT31 temperature/humidity data (0.5Hz)
+  - `CAN_MSG_TMP36_TEMPERATURE` (0x102): TMP36 temperature data
+  - `CAN_MSG_MPU6050_SMOOTHED` (0x103): MPU6050 smoothed G-force data (2Hz)
+  - `CAN_MSG_MPU6050_MAX` (0x104): MPU6050 absolute maximum G-forces (2Hz)
+  - `CAN_MSG_SENSOR_STATUS` (0x105): Sensor health and status information
 
 ## Building and Deployment
 
@@ -100,7 +143,7 @@ smart_tbird/
 - ESP32/ESP32-C3 development boards
 - MCP2515 CAN controller modules
 - TJA1050 CAN transceivers
-- Sensors (SHT31, TMP36, LDR)
+- Sensors (SHT31, TMP36, MPU6050, LDR)
 
 ### Build Commands
 ```bash
@@ -109,11 +152,13 @@ pio run
 
 # Build specific nodes
 pio run -e display_node
-pio run -e sht31_node
+pio run -e central_node      # Primary sensor hub (SHT31 + MPU6050)
+pio run -e sht31_node        # Legacy standalone SHT31
 pio run -e tmp36_node
 
 # Upload specific node
 pio run -e display_node -t upload
+pio run -e central_node -t upload
 pio run -e sht31_node -t upload
 pio run -e tmp36_node -t upload
 ```
@@ -202,6 +247,18 @@ mkdir nodes/new_sensor_node
 - Status LEDs indicate communication state
 - Error counters track system health
 
+## Current Capabilities
+
+### Implemented Features
+- ✅ Multi-node CAN network with standardized communication
+- ✅ High-performance MPU6050 IMU with 100Hz sampling
+- ✅ Digital filtering and smoothing for automotive applications
+- ✅ Real-time G-force monitoring and absolute maximum tracking
+- ✅ Environmental monitoring (temperature/humidity)
+- ✅ Auto-dimming display with LDR sensor
+- ✅ Comprehensive error handling and status reporting
+- ✅ Modular, maintainable code architecture
+
 ## Future Enhancements
 
 ### Planned Features
@@ -210,13 +267,18 @@ mkdir nodes/new_sensor_node
 - Power management modes
 - Network diagnostics dashboard
 - Data logging capabilities
+- GPS integration for location-based G-force analysis
+- Advanced filtering algorithms (Kalman filters)
+- Real-time data visualization improvements
 
 ### Expansion Possibilities
-- Additional sensor types
-- Actuator control
-- Remote monitoring
+- Additional sensor types (pressure, light, proximity)
+- Actuator control (fans, pumps, valves)
+- Remote monitoring via WiFi/Bluetooth
 - Integration with other CAN systems
 - Wireless gateway support
+- Machine learning for driving behavior analysis
+- Integration with vehicle OBD-II systems
 
 ---
 

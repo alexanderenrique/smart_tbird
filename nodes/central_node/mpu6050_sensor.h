@@ -91,6 +91,14 @@ private:
     unsigned long _last_max_reset;
     uint16_t _max_reset_counter;
     
+    // Smoothing filter variables
+    static const uint8_t SMOOTH_BUFFER_SIZE = 50; // 50 samples = 0.5 seconds at 100Hz
+    int16_t _smooth_buffer_x[SMOOTH_BUFFER_SIZE];
+    int16_t _smooth_buffer_y[SMOOTH_BUFFER_SIZE];
+    int16_t _smooth_buffer_z[SMOOTH_BUFFER_SIZE];
+    uint8_t _smooth_index;
+    uint16_t _smooth_sample_count;
+    
     // Raw sensor data
     struct {
         int16_t accel_x, accel_y, accel_z;
@@ -109,6 +117,7 @@ public:
     // Data reading
     bool readSensorData(MPU6050Data& data);
     bool readMaxValues(MPU6050MaxData& max_data);
+    bool readSmoothedData(MPU6050SmoothedData& smoothed_data);
     
     // Max value management
     void resetMaxValues();
@@ -141,6 +150,7 @@ private:
     // Data processing
     void processRawData();
     void updateMaxTracking();
+    void updateSmoothingFilter();
 };
 
 #endif // MPU6050_SENSOR_H

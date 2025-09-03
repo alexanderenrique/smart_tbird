@@ -9,10 +9,16 @@
 MPU6050Sensor::MPU6050Sensor(uint8_t address, uint8_t sda_pin, uint8_t scl_pin) 
     : _address(address), _sda_pin(sda_pin), _scl_pin(scl_pin), _initialized(false),
       _error_count(0), _successful_reads(0), _max_accel_x(0), _max_accel_y(0), _max_accel_z(0),
-      _max_gyro_x(0), _max_gyro_y(0), _max_gyro_z(0), _last_max_reset(0), _max_reset_counter(0) {
+      _max_gyro_x(0), _max_gyro_y(0), _max_gyro_z(0), _last_max_reset(0), _max_reset_counter(0),
+      _smooth_index(0), _smooth_sample_count(0) {
     
     // Initialize raw data structure
     memset(&_raw_data, 0, sizeof(_raw_data));
+    
+    // Initialize smoothing buffers
+    memset(_smooth_buffer_x, 0, sizeof(_smooth_buffer_x));
+    memset(_smooth_buffer_y, 0, sizeof(_smooth_buffer_y));
+    memset(_smooth_buffer_z, 0, sizeof(_smooth_buffer_z));
 }
 
 // Initialize the sensor
@@ -114,6 +120,9 @@ bool MPU6050Sensor::readSensorData(MPU6050Data& data) {
     // Update max value tracking
     updateMaxTracking();
     
+    // Update smoothing filter
+    updateSmoothingFilter();
+    
     // Populate data structure
     data.accel_x = _raw_data.accel_x;
     data.accel_y = _raw_data.accel_y;
@@ -138,6 +147,33 @@ bool MPU6050Sensor::readMaxValues(MPU6050MaxData& max_data) {
     max_data.sensor_id = MPU6050_SENSOR_ID;
     max_data.status_flags = 0x01; // Max values valid
     max_data.reset_counter = _max_reset_counter; // Shows number of manual resets
+    
+    return true;
+}
+
+// Read smoothed acceleration data
+bool MPU6050Sensor::readSmoothedData(MPU6050SmoothedData& smoothed_data) {
+    if (!_initialized) {
+        return false;
+    }
+    
+    // Calculate smoothed values using moving average
+    int32_t sum_x = 0, sum_y = 0, sum_z = 0;
+    uint8_t samples_to_use = min(_smooth_sample_count, SMOOTH_BUFFER_SIZE);
+    
+    for (uint8_t i = 0; i < samples_to_use; i++) {
+        sum_x += _smooth_buffer_x[i];
+        sum_y += _smooth_buffer_y[i];
+        sum_z += _smooth_buffer_z[i];
+    }
+    
+    // Populate smoothed data structure
+    smoothed_data.smooth_accel_x = (int16_t)(sum_x / samples_to_use);
+    smoothed_data.smooth_accel_y = (int16_t)(sum_y / samples_to_use);
+    smoothed_data.smooth_accel_z = (int16_t)(sum_z / samples_to_use);
+    smoothed_data.sensor_id = MPU6050_SENSOR_ID;
+    smoothed_data.status_flags = 0x01; // Smoothed data valid
+    smoothed_data.sample_count = samples_to_use;
     
     return true;
 }
@@ -181,12 +217,29 @@ void MPU6050Sensor::updateMaxTracking() {
     }
 }
 
+// Update smoothing filter with new sample
+void MPU6050Sensor::updateSmoothingFilter() {
+    // Add new sample to circular buffer
+    _smooth_buffer_x[_smooth_index] = _raw_data.accel_x;
+    _smooth_buffer_y[_smooth_index] = _raw_data.accel_y;
+    _smooth_buffer_z[_smooth_index] = _raw_data.accel_z;
+    
+    // Update circular buffer index
+    _smooth_index = (_smooth_index + 1) % SMOOTH_BUFFER_SIZE;
+    
+    // Update sample count (capped at buffer size)
+    if (_smooth_sample_count < SMOOTH_BUFFER_SIZE) {
+        _smooth_sample_count++;
+    }
+}
+
 // Print sensor status
 void MPU6050Sensor::printStatus() const {
     Serial.println("=== MPU6050 Status ===");
     Serial.printf("Initialized: %s\n", _initialized ? "Yes" : "No");
     Serial.printf("Sample rate: 100Hz (10ms intervals)\n");
     Serial.printf("DLPF: ~44Hz cutoff (CFG_3)\n");
+    Serial.printf("Smoothing: 50-sample moving average (0.5s window)\n");
     Serial.printf("Successful reads: %d\n", _successful_reads);
     Serial.printf("Error count: %d\n", _error_count);
     Serial.printf("Manual resets: %d (absolute max since power-on)\n", _max_reset_counter);

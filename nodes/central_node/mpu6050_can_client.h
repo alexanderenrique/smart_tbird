@@ -11,8 +11,8 @@
 #include "../shared/can_lib/can_messages.h"
 
 // Function declarations
-bool sendMPU6050Data(const MPU6050Data& data);
 bool sendMPU6050MaxValues(const MPU6050MaxData& max_data);
+bool sendMPU6050SmoothedData(const MPU6050SmoothedData& smoothed_data);
 void handleMPU6050CANMessages();
 void printMPU6050CANStatus();
 

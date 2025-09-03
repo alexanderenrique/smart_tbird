@@ -4,6 +4,10 @@
  * 
  * This file defines hardware configurations for different node types
  * and provides a unified interface for accessing pin assignments.
+ * 
+ * ACTIVE NODES:
+ * - DISPLAY_NODE: Main display unit with TFT and LDR
+ * - CENTRAL_NODE: Primary sensor hub with SHT31 + MPU6050
  */
 
 #ifndef NODE_CONFIG_H
@@ -15,8 +19,7 @@
 // NODE TYPE DEFINITIONS
 // ============================================================================
 #define DISPLAY_NODE    1
-
-#define CENTRAL_NODE    5
+#define CENTRAL_NODE    2
 
 // ============================================================================
 // DISPLAY NODE CONFIGURATION (ESP32 with TFT Display + LDR)
@@ -72,92 +75,7 @@
 #endif // DISPLAY_NODE
 #endif // NODE_TYPE
 
-// ============================================================================
-// SHT31 NODE CONFIGURATION (ESP32-C3 with SHT31 Sensor)
-// ============================================================================
-#ifdef NODE_TYPE
-#if NODE_TYPE == SHT31_NODE
 
-// SHT31 Sensor Pins (I2C)
-#define SHT31_SDA_PIN   8
-#define SHT31_SCL_PIN   9
-
-// CAN Bus Pins
-#define CAN_CS_PIN      5
-#define CAN_INT_PIN     2
-#define CAN_CLK_PIN     6
-#define CAN_MOSI_PIN    7
-#define CAN_MISO_PIN    4
-
-// Status LED
-#define STATUS_LED_PIN  2
-
-// Node Configuration
-#define NODE_NAME       "SHT31 Node"
-#define SENSOR_READ_INTERVAL  5000    // 5 seconds
-#define HEARTBEAT_INTERVAL    30000   // 30 seconds
-#define SHT31_ADDRESS         0x44    // Default I2C address
-
-#endif // SHT31_NODE
-#endif // NODE_TYPE
-
-// ============================================================================
-// TMP36 NODE CONFIGURATION (ESP32 with TMP36 Sensor)
-// ============================================================================
-#ifdef NODE_TYPE
-#if NODE_TYPE == TMP36_NODE
-
-// TMP36 Sensor Pin (Analog)
-#define TMP36_ANALOG_PIN    36
-
-// CAN Bus Pins
-#define CAN_CS_PIN      5
-#define CAN_INT_PIN     2
-#define CAN_CLK_PIN     18
-#define CAN_MOSI_PIN    23
-#define CAN_MISO_PIN    19
-
-// Status LED
-#define STATUS_LED_PIN  2
-
-// Node Configuration
-#define NODE_NAME       "TMP36 Node"
-#define SENSOR_READ_INTERVAL  5000    // 5 seconds
-#define HEARTBEAT_INTERVAL    30000   // 30 seconds
-#define TMP36_VOLTAGE_REF     3.3     // Reference voltage
-#define TMP36_OFFSET          0.5     // Voltage offset at 0°C
-
-#endif // TMP36_NODE
-#endif // NODE_TYPE
-
-// ============================================================================
-// LDR NODE CONFIGURATION (ESP32 with Light Dependent Resistor)
-// ============================================================================
-#ifdef NODE_TYPE
-#if NODE_TYPE == LDR_NODE
-
-// LDR Sensor Pin (Analog)
-#define LDR_ANALOG_PIN      36
-#define LDR_PULLUP_PIN      39
-
-// CAN Bus Pins
-#define CAN_CS_PIN      5
-#define CAN_INT_PIN     2
-#define CAN_CLK_PIN     18
-#define CAN_MOSI_PIN    23
-#define CAN_MISO_PIN    19
-
-// Status LED
-#define STATUS_LED_PIN  2
-
-// Node Configuration
-#define NODE_NAME       "LDR Node"
-#define SENSOR_READ_INTERVAL  2000    // 2 seconds
-#define HEARTBEAT_INTERVAL    30000   // 30 seconds
-#define LDR_VOLTAGE_REF       3.3     // Reference voltage
-
-#endif // LDR_NODE
-#endif // NODE_TYPE
 
 // ============================================================================
 // CENTRAL NODE CONFIGURATION (ESP32 with SHT31 + MPU6050)
@@ -175,6 +93,11 @@
 #define MPU6050_SCL_PIN 22
 #define MPU6050_ADDRESS 0x68
 
+// INA219 Battery Monitor Pins (I2C - same bus as other sensors)
+#define INA219_SDA_PIN   21
+#define INA219_SCL_PIN   22
+#define INA219_ADDRESS   0x40
+
 // CAN Bus Pins
 #define CAN_CS_PIN      5
 #define CAN_INT_PIN     2
@@ -188,15 +111,22 @@
 // Node Configuration
 #define NODE_NAME       "Central Node"
 #define SENSOR_READ_INTERVAL  10      // 10ms = 100Hz for MPU6050
+#define SHT31_READ_INTERVAL   2000    // 2 seconds = 0.5Hz for SHT31
 #define HEARTBEAT_INTERVAL    30000   // 30 seconds
 #define SHT31_SENSOR_ID       1
 #define MPU6050_SENSOR_ID     2
+#define INA219_SENSOR_ID      3
 
 // MPU6050 Configuration
 #define MPU6050_ACCEL_RANGE   2       // ±2g range for automotive use
 #define MPU6050_GYRO_RANGE    250     // ±250°/s range
 #define MPU6050_DLPF_CONFIG   3       // Digital Low-Pass Filter: ~44Hz cutoff
-#define MPU6050_MAX_RESET_INTERVAL 300000  // Reset max values every 5 minutes
+
+// INA219 Configuration
+#define INA219_READ_INTERVAL  500    // 500 ms (2Hz)
+#define INA219_SHUNT_RESISTOR 0.1f    // 0.1 ohm shunt resistor (typical for INA219)
+#define INA219_MAX_CURRENT    3.2f    // Maximum expected current (3.2A)
+#define INA219_BUS_VOLTAGE    16.0f   // Maximum bus voltage (16V)
 
 #endif // CENTRAL_NODE
 #endif // NODE_TYPE
@@ -231,9 +161,6 @@ inline const char* getNodeTypeName() {
     #ifdef NODE_TYPE
     switch (NODE_TYPE) {
         case DISPLAY_NODE: return "Display";
-        case SHT31_NODE:   return "SHT31";
-        case TMP36_NODE:   return "TMP36";
-        case LDR_NODE:     return "LDR";
         case CENTRAL_NODE: return "Central";
         default:           return "Unknown";
     }
@@ -259,6 +186,9 @@ inline void printNodeConfig() {
     Serial.printf("Name: %s\n", NODE_NAME);
     Serial.printf("Type: %s (ID: %s)\n", getNodeTypeName(), getNodeIdString());
     Serial.printf("Sensor Read Interval: %d ms\n", SENSOR_READ_INTERVAL);
+    #ifdef SHT31_READ_INTERVAL
+    Serial.printf("SHT31 Read Interval: %d ms\n", SHT31_READ_INTERVAL);
+    #endif
     Serial.printf("Heartbeat Interval: %d ms\n", HEARTBEAT_INTERVAL);
     Serial.printf("Status LED Pin: %d\n", STATUS_LED_PIN);
     Serial.printf("CAN CS Pin: %d\n", CAN_CS_PIN);

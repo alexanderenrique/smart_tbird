@@ -27,7 +27,7 @@
 // Display and touch objects
 TFT_eSPI tft = TFT_eSPI();
 static lv_disp_draw_buf_t draw_buf;
-static lv_color_t buf[480 * 10];
+static lv_color_t buf[320 * 10];
 
 // CAN Manager
 CANManager* can_manager = nullptr;
@@ -42,7 +42,12 @@ struct SHT31Data {
     uint8_t sensor_id = 0;
 };
 
-
+struct TMP36Data {
+    float temperature = 0.0;
+    bool temp_valid = false;
+    unsigned long last_update = 0;
+    uint8_t sensor_id = 0;
+};
 
 struct MPU6050Data {
     float accel_x = 0.0;
@@ -94,6 +99,7 @@ struct LDRData {
 
 // Global sensor data
 SHT31Data sht31_data;
+TMP36Data tmp36_data;
 MPU6050Data mpu6050_data;
 INA219Data ina219_data;
 SystemStatus system_status;
@@ -112,6 +118,7 @@ lv_obj_t* system_status_label;
 
 // Sensor card containers
 lv_obj_t* sht31_card;
+lv_obj_t* tmp36_card;
 lv_obj_t* mpu6050_card;
 lv_obj_t* ina219_card;
 
@@ -120,6 +127,11 @@ lv_obj_t* sht31_title;
 lv_obj_t* sht31_temp_label;
 lv_obj_t* sht31_humidity_label;
 lv_obj_t* sht31_status_label;
+
+// TMP36 card labels
+lv_obj_t* tmp36_title;
+lv_obj_t* tmp36_temp_label;
+lv_obj_t* tmp36_status_label;
 
 // MPU6050 card labels
 lv_obj_t* mpu6050_title;
@@ -189,174 +201,201 @@ void setupUI() {
     lv_obj_set_style_pad_all(main_screen, 0, 0);
     
     // ============================================================================
-    // HEADER SECTION (Top 60px)
+    // HEADER SECTION (Top 40px)
     // ============================================================================
     header_container = lv_obj_create(main_screen);
-    lv_obj_set_size(header_container, 480, 60);
+    lv_obj_set_size(header_container, 320, 40);
     lv_obj_set_pos(header_container, 0, 0);
     lv_obj_set_style_bg_color(header_container, lv_color_hex(0x1A1A2E), 0);
     lv_obj_set_style_border_width(header_container, 0, 0);
-    lv_obj_set_style_pad_all(header_container, 10, 0);
+    lv_obj_set_style_pad_all(header_container, 5, 0);
     
     // Title
     title_label = lv_label_create(header_container);
     lv_label_set_text(title_label, "Smart Thunderbird");
     lv_obj_set_style_text_color(title_label, lv_color_hex(0x00D4FF), 0);
-    lv_obj_set_style_text_font(title_label, &lv_font_montserrat_20, 0);
-    lv_obj_align(title_label, LV_ALIGN_LEFT_MID, 10, 0);
+    lv_obj_set_style_text_font(title_label, &lv_font_montserrat_16, 0);
+    lv_obj_align(title_label, LV_ALIGN_LEFT_MID, 5, 0);
     
     // CAN Status
     can_status_label = lv_label_create(header_container);
     lv_label_set_text(can_status_label, "CAN: --");
     lv_obj_set_style_text_color(can_status_label, lv_color_hex(0xFF6B6B), 0);
-    lv_obj_set_style_text_font(can_status_label, &lv_font_montserrat_16, 0);
-    lv_obj_align(can_status_label, LV_ALIGN_RIGHT_MID, -10, 0);
+    lv_obj_set_style_text_font(can_status_label, &lv_font_montserrat_12, 0);
+    lv_obj_align(can_status_label, LV_ALIGN_RIGHT_MID, -5, 0);
     
     // ============================================================================
-    // CONTENT SECTION (Middle 200px - 1x3 vertical layout with larger cards)
+    // CONTENT SECTION (Middle 160px - 2x2 grid)
     // ============================================================================
     content_container = lv_obj_create(main_screen);
-    lv_obj_set_size(content_container, 480, 200);
-    lv_obj_set_pos(content_container, 0, 60);
+    lv_obj_set_size(content_container, 320, 160);
+    lv_obj_set_pos(content_container, 0, 40);
     lv_obj_set_style_bg_color(content_container, lv_color_hex(0x0A0A0A), 0);
     lv_obj_set_style_border_width(content_container, 0, 0);
-    lv_obj_set_style_pad_all(content_container, 10, 0);
+    lv_obj_set_style_pad_all(content_container, 5, 0);
     
-    // SHT31 Card (Top) - 460x60
+    // SHT31 Card (Top Left)
     sht31_card = lv_obj_create(content_container);
-    lv_obj_set_size(sht31_card, 460, 60);
-    lv_obj_set_pos(sht31_card, 10, 10);
+    lv_obj_set_size(sht31_card, 150, 75);
+    lv_obj_set_pos(sht31_card, 5, 5);
     lv_obj_set_style_bg_color(sht31_card, lv_color_hex(0x16213E), 0);
-    lv_obj_set_style_border_width(sht31_card, 2, 0);
+    lv_obj_set_style_border_width(sht31_card, 1, 0);
     lv_obj_set_style_border_color(sht31_card, lv_color_hex(0x00D4FF), 0);
-    lv_obj_set_style_pad_all(sht31_card, 8, 0);
+    lv_obj_set_style_pad_all(sht31_card, 5, 0);
     
     sht31_title = lv_label_create(sht31_card);
-    lv_label_set_text(sht31_title, "SHT31 Temperature & Humidity");
+    lv_label_set_text(sht31_title, "SHT31");
     lv_obj_set_style_text_color(sht31_title, lv_color_hex(0x00D4FF), 0);
-    lv_obj_set_style_text_font(sht31_title, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(sht31_title, &lv_font_montserrat_12, 0);
     lv_obj_align(sht31_title, LV_ALIGN_TOP_LEFT, 0, 0);
     
     sht31_temp_label = lv_label_create(sht31_card);
-    lv_label_set_text(sht31_temp_label, "Temperature: --°C");
+    lv_label_set_text(sht31_temp_label, "Temp: --°C");
     lv_obj_set_style_text_color(sht31_temp_label, lv_color_hex(0xFFFFFF), 0);
-    lv_obj_set_style_text_font(sht31_temp_label, &lv_font_montserrat_12, 0);
-    lv_obj_align(sht31_temp_label, LV_ALIGN_TOP_LEFT, 0, 20);
+    lv_obj_set_style_text_font(sht31_temp_label, &lv_font_montserrat_10, 0);
+    lv_obj_align(sht31_temp_label, LV_ALIGN_TOP_LEFT, 0, 15);
     
     sht31_humidity_label = lv_label_create(sht31_card);
     lv_label_set_text(sht31_humidity_label, "Humidity: --%");
     lv_obj_set_style_text_color(sht31_humidity_label, lv_color_hex(0xFFFFFF), 0);
-    lv_obj_set_style_text_font(sht31_humidity_label, &lv_font_montserrat_12, 0);
-    lv_obj_align(sht31_humidity_label, LV_ALIGN_TOP_LEFT, 0, 40);
+    lv_obj_set_style_text_font(sht31_humidity_label, &lv_font_montserrat_10, 0);
+    lv_obj_align(sht31_humidity_label, LV_ALIGN_TOP_LEFT, 0, 30);
     
     sht31_status_label = lv_label_create(sht31_card);
     lv_label_set_text(sht31_status_label, "Status: --");
     lv_obj_set_style_text_color(sht31_status_label, lv_color_hex(0xFF6B6B), 0);
-    lv_obj_set_style_text_font(sht31_status_label, &lv_font_montserrat_10, 0);
-    lv_obj_align(sht31_status_label, LV_ALIGN_TOP_RIGHT, -10, 0);
+    lv_obj_set_style_text_font(sht31_status_label, &lv_font_montserrat_8, 0);
+    lv_obj_align(sht31_status_label, LV_ALIGN_TOP_LEFT, 0, 45);
     
-    // MPU6050 Card (Middle) - 460x60
+    // TMP36 Card (Top Right)
+    tmp36_card = lv_obj_create(content_container);
+    lv_obj_set_size(tmp36_card, 150, 75);
+    lv_obj_set_pos(tmp36_card, 165, 5);
+    lv_obj_set_style_bg_color(tmp36_card, lv_color_hex(0x16213E), 0);
+    lv_obj_set_style_border_width(tmp36_card, 1, 0);
+    lv_obj_set_style_border_color(tmp36_card, lv_color_hex(0xFF6B6B), 0);
+    lv_obj_set_style_pad_all(tmp36_card, 5, 0);
+    
+    tmp36_title = lv_label_create(tmp36_card);
+    lv_label_set_text(tmp36_title, "TMP36");
+    lv_obj_set_style_text_color(tmp36_title, lv_color_hex(0xFF6B6B), 0);
+    lv_obj_set_style_text_font(tmp36_title, &lv_font_montserrat_12, 0);
+    lv_obj_align(tmp36_title, LV_ALIGN_TOP_LEFT, 0, 0);
+    
+    tmp36_temp_label = lv_label_create(tmp36_card);
+    lv_label_set_text(tmp36_temp_label, "Temp: --°C");
+    lv_obj_set_style_text_color(tmp36_temp_label, lv_color_hex(0xFFFFFF), 0);
+    lv_obj_set_style_text_font(tmp36_temp_label, &lv_font_montserrat_10, 0);
+    lv_obj_align(tmp36_temp_label, LV_ALIGN_TOP_LEFT, 0, 15);
+    
+    tmp36_status_label = lv_label_create(tmp36_card);
+    lv_label_set_text(tmp36_status_label, "Status: --");
+    lv_obj_set_style_text_color(tmp36_status_label, lv_color_hex(0xFF6B6B), 0);
+    lv_obj_set_style_text_font(tmp36_status_label, &lv_font_montserrat_8, 0);
+    lv_obj_align(tmp36_status_label, LV_ALIGN_TOP_LEFT, 0, 30);
+    
+    // MPU6050 Card (Bottom Left)
     mpu6050_card = lv_obj_create(content_container);
-    lv_obj_set_size(mpu6050_card, 460, 60);
-    lv_obj_set_pos(mpu6050_card, 10, 70);
+    lv_obj_set_size(mpu6050_card, 150, 75);
+    lv_obj_set_pos(mpu6050_card, 5, 80);
     lv_obj_set_style_bg_color(mpu6050_card, lv_color_hex(0x16213E), 0);
-    lv_obj_set_style_border_width(mpu6050_card, 2, 0);
+    lv_obj_set_style_border_width(mpu6050_card, 1, 0);
     lv_obj_set_style_border_color(mpu6050_card, lv_color_hex(0x4ECDC4), 0);
-    lv_obj_set_style_pad_all(mpu6050_card, 8, 0);
+    lv_obj_set_style_pad_all(mpu6050_card, 5, 0);
     
     mpu6050_title = lv_label_create(mpu6050_card);
-    lv_label_set_text(mpu6050_title, "MPU6050 IMU");
+    lv_label_set_text(mpu6050_title, "MPU6050");
     lv_obj_set_style_text_color(mpu6050_title, lv_color_hex(0x4ECDC4), 0);
-    lv_obj_set_style_text_font(mpu6050_title, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(mpu6050_title, &lv_font_montserrat_12, 0);
     lv_obj_align(mpu6050_title, LV_ALIGN_TOP_LEFT, 0, 0);
     
     mpu6050_accel_label = lv_label_create(mpu6050_card);
-    lv_label_set_text(mpu6050_accel_label, "Acceleration: --g");
+    lv_label_set_text(mpu6050_accel_label, "Accel: --g");
     lv_obj_set_style_text_color(mpu6050_accel_label, lv_color_hex(0xFFFFFF), 0);
-    lv_obj_set_style_text_font(mpu6050_accel_label, &lv_font_montserrat_12, 0);
-    lv_obj_align(mpu6050_accel_label, LV_ALIGN_TOP_LEFT, 0, 20);
+    lv_obj_set_style_text_font(mpu6050_accel_label, &lv_font_montserrat_10, 0);
+    lv_obj_align(mpu6050_accel_label, LV_ALIGN_TOP_LEFT, 0, 15);
     
     mpu6050_max_label = lv_label_create(mpu6050_card);
-    lv_label_set_text(mpu6050_max_label, "Max Values: --g");
+    lv_label_set_text(mpu6050_max_label, "Max: --g");
     lv_obj_set_style_text_color(mpu6050_max_label, lv_color_hex(0xFFFFFF), 0);
-    lv_obj_set_style_text_font(mpu6050_max_label, &lv_font_montserrat_12, 0);
-    lv_obj_align(mpu6050_max_label, LV_ALIGN_TOP_LEFT, 0, 40);
+    lv_obj_set_style_text_font(mpu6050_max_label, &lv_font_montserrat_10, 0);
+    lv_obj_align(mpu6050_max_label, LV_ALIGN_TOP_LEFT, 0, 30);
     
     mpu6050_status_label = lv_label_create(mpu6050_card);
     lv_label_set_text(mpu6050_status_label, "Status: --");
     lv_obj_set_style_text_color(mpu6050_status_label, lv_color_hex(0xFF6B6B), 0);
-    lv_obj_set_style_text_font(mpu6050_status_label, &lv_font_montserrat_10, 0);
-    lv_obj_align(mpu6050_status_label, LV_ALIGN_TOP_RIGHT, -10, 0);
+    lv_obj_set_style_text_font(mpu6050_status_label, &lv_font_montserrat_8, 0);
+    lv_obj_align(mpu6050_status_label, LV_ALIGN_TOP_LEFT, 0, 45);
     
-    // INA219 Card (Bottom) - 460x60
+    // INA219 Card (Bottom Right)
     ina219_card = lv_obj_create(content_container);
-    lv_obj_set_size(ina219_card, 460, 60);
-    lv_obj_set_pos(ina219_card, 10, 130);
+    lv_obj_set_size(ina219_card, 150, 75);
+    lv_obj_set_pos(ina219_card, 165, 80);
     lv_obj_set_style_bg_color(ina219_card, lv_color_hex(0x16213E), 0);
-    lv_obj_set_style_border_width(ina219_card, 2, 0);
+    lv_obj_set_style_border_width(ina219_card, 1, 0);
     lv_obj_set_style_border_color(ina219_card, lv_color_hex(0xFFE66D), 0);
-    lv_obj_set_style_pad_all(ina219_card, 8, 0);
+    lv_obj_set_style_pad_all(ina219_card, 5, 0);
     
     ina219_title = lv_label_create(ina219_card);
-    lv_label_set_text(ina219_title, "INA219 Power Monitor");
+    lv_label_set_text(ina219_title, "INA219");
     lv_obj_set_style_text_color(ina219_title, lv_color_hex(0xFFE66D), 0);
-    lv_obj_set_style_text_font(ina219_title, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(ina219_title, &lv_font_montserrat_12, 0);
     lv_obj_align(ina219_title, LV_ALIGN_TOP_LEFT, 0, 0);
     
     ina219_voltage_label = lv_label_create(ina219_card);
     lv_label_set_text(ina219_voltage_label, "Voltage: --V");
     lv_obj_set_style_text_color(ina219_voltage_label, lv_color_hex(0xFFFFFF), 0);
-    lv_obj_set_style_text_font(ina219_voltage_label, &lv_font_montserrat_12, 0);
-    lv_obj_align(ina219_voltage_label, LV_ALIGN_TOP_LEFT, 0, 20);
+    lv_obj_set_style_text_font(ina219_voltage_label, &lv_font_montserrat_10, 0);
+    lv_obj_align(ina219_voltage_label, LV_ALIGN_TOP_LEFT, 0, 15);
     
     ina219_current_label = lv_label_create(ina219_card);
     lv_label_set_text(ina219_current_label, "Current: --mA");
     lv_obj_set_style_text_color(ina219_current_label, lv_color_hex(0xFFFFFF), 0);
-    lv_obj_set_style_text_font(ina219_current_label, &lv_font_montserrat_12, 0);
-    lv_obj_align(ina219_current_label, LV_ALIGN_TOP_LEFT, 0, 40);
+    lv_obj_set_style_text_font(ina219_current_label, &lv_font_montserrat_10, 0);
+    lv_obj_align(ina219_current_label, LV_ALIGN_TOP_LEFT, 0, 30);
     
     ina219_power_label = lv_label_create(ina219_card);
     lv_label_set_text(ina219_power_label, "Power: --W");
     lv_obj_set_style_text_color(ina219_power_label, lv_color_hex(0xFFFFFF), 0);
-    lv_obj_set_style_text_font(ina219_power_label, &lv_font_montserrat_12, 0);
-    lv_obj_align(ina219_power_label, LV_ALIGN_TOP_RIGHT, -10, 0);
+    lv_obj_set_style_text_font(ina219_power_label, &lv_font_montserrat_10, 0);
+    lv_obj_align(ina219_power_label, LV_ALIGN_TOP_LEFT, 0, 45);
     
     ina219_status_label = lv_label_create(ina219_card);
     lv_label_set_text(ina219_status_label, "Status: --");
     lv_obj_set_style_text_color(ina219_status_label, lv_color_hex(0xFF6B6B), 0);
-    lv_obj_set_style_text_font(ina219_status_label, &lv_font_montserrat_10, 0);
-    lv_obj_align(ina219_status_label, LV_ALIGN_TOP_RIGHT, -10, 20);
+    lv_obj_set_style_text_font(ina219_status_label, &lv_font_montserrat_8, 0);
+    lv_obj_align(ina219_status_label, LV_ALIGN_TOP_LEFT, 0, 60);
     
     // ============================================================================
-    // FOOTER SECTION (Bottom 60px)
+    // FOOTER SECTION (Bottom 40px)
     // ============================================================================
     footer_container = lv_obj_create(main_screen);
-    lv_obj_set_size(footer_container, 480, 60);
-    lv_obj_set_pos(footer_container, 0, 260);
+    lv_obj_set_size(footer_container, 320, 40);
+    lv_obj_set_pos(footer_container, 0, 200);
     lv_obj_set_style_bg_color(footer_container, lv_color_hex(0x1A1A2E), 0);
     lv_obj_set_style_border_width(footer_container, 0, 0);
-    lv_obj_set_style_pad_all(footer_container, 10, 0);
+    lv_obj_set_style_pad_all(footer_container, 5, 0);
     
     // Uptime
     uptime_label = lv_label_create(footer_container);
     lv_label_set_text(uptime_label, "Uptime: --");
     lv_obj_set_style_text_color(uptime_label, lv_color_hex(0xFFFFFF), 0);
-    lv_obj_set_style_text_font(uptime_label, &lv_font_montserrat_12, 0);
-    lv_obj_align(uptime_label, LV_ALIGN_LEFT_MID, 10, 0);
+    lv_obj_set_style_text_font(uptime_label, &lv_font_montserrat_10, 0);
+    lv_obj_align(uptime_label, LV_ALIGN_LEFT_MID, 5, 0);
     
     // Memory
     memory_label = lv_label_create(footer_container);
     lv_label_set_text(memory_label, "RAM: --KB");
     lv_obj_set_style_text_color(memory_label, lv_color_hex(0xFFFFFF), 0);
-    lv_obj_set_style_text_font(memory_label, &lv_font_montserrat_12, 0);
+    lv_obj_set_style_text_font(memory_label, &lv_font_montserrat_10, 0);
     lv_obj_align(memory_label, LV_ALIGN_CENTER, 0, 0);
     
     // LDR
     ldr_label = lv_label_create(footer_container);
     lv_label_set_text(ldr_label, "Light: --");
     lv_obj_set_style_text_color(ldr_label, lv_color_hex(0xFFFFFF), 0);
-    lv_obj_set_style_text_font(ldr_label, &lv_font_montserrat_12, 0);
-    lv_obj_align(ldr_label, LV_ALIGN_RIGHT_MID, -10, 0);
+    lv_obj_set_style_text_font(ldr_label, &lv_font_montserrat_10, 0);
+    lv_obj_align(ldr_label, LV_ALIGN_RIGHT_MID, -5, 0);
 }
 
 // ============================================================================
@@ -387,7 +426,25 @@ void handleSHT31Message(const SHT31Data& data) {
         lv_color_hex(0x4ECDC4) : lv_color_hex(0xFF6B6B), 0);
 }
 
-
+void handleTMP36Message(const TMP36Data& data) {
+    tmp36_data = data;
+    tmp36_data.last_update = millis();
+    
+    // Update UI
+    char temp_str[20];
+    char status_str[20];
+    
+    snprintf(temp_str, sizeof(temp_str), "Temp: %.1f°C", tmp36_data.temperature);
+    snprintf(status_str, sizeof(status_str), "Status: %s", 
+             tmp36_data.temp_valid ? "OK" : "ERROR");
+    
+    lv_label_set_text(tmp36_temp_label, temp_str);
+    lv_label_set_text(tmp36_status_label, status_str);
+    
+    // Update status color
+    lv_obj_set_style_text_color(tmp36_status_label, 
+        tmp36_data.temp_valid ? lv_color_hex(0x4ECDC4) : lv_color_hex(0xFF6B6B), 0);
+}
 
 void handleMPU6050Message(const MPU6050Data& data) {
     mpu6050_data = data;
@@ -609,12 +666,12 @@ void setup() {
     
     // Initialize LVGL
     lv_init();
-    lv_disp_draw_buf_init(&draw_buf, buf, NULL, 480 * 10);
+    lv_disp_draw_buf_init(&draw_buf, buf, NULL, 320 * 10);
     
     static lv_disp_drv_t disp_drv;
     lv_disp_drv_init(&disp_drv);
-    disp_drv.hor_res = 480;
-    disp_drv.ver_res = 320;
+    disp_drv.hor_res = 320;
+    disp_drv.ver_res = 240;
     disp_drv.flush_cb = my_disp_flush;
     disp_drv.draw_buf = &draw_buf;
     lv_disp_drv_register(&disp_drv);

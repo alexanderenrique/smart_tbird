@@ -33,8 +33,10 @@
 // Sensor Data Messages (0x100-0x1FF)
 #define CAN_MSG_SHT31_TEMP_HUMIDITY    0x101    // SHT31 temperature and humidity
 #define CAN_MSG_TMP36_TEMPERATURE      0x102    // TMP36 temperature only
-#define CAN_MSG_MPU6050_IMU            0x103    // MPU6050 6-axis IMU data
-#define CAN_MSG_SENSOR_STATUS          0x104    // Sensor health and status
+#define CAN_MSG_MPU6050_SMOOTHED       0x103    // MPU6050 smoothed data (2Hz)
+#define CAN_MSG_MPU6050_MAX            0x104    // MPU6050 max values (2Hz)
+#define CAN_MSG_INA219_BATTERY         0x106    // INA219 battery voltage and current
+#define CAN_MSG_SENSOR_STATUS          0x105    // Sensor health and status
 
 // System Control Messages (0x200-0x2FF)
 #define CAN_MSG_DISPLAY_REQUEST        0x201    // Request sensor data from display
@@ -86,9 +88,28 @@ struct MPU6050MaxData {
     uint16_t reset_counter;       // Counter for max value resets
 } __attribute__((packed));
 
+// MPU6050 Smoothed Data (8 bytes) - for real-time display
+struct MPU6050SmoothedData {
+    int16_t smooth_accel_x;       // Smoothed X-axis acceleration
+    int16_t smooth_accel_y;       // Smoothed Y-axis acceleration
+    int16_t smooth_accel_z;       // Smoothed Z-axis acceleration
+    uint8_t sensor_id;            // Unique sensor identifier (0-255)
+    uint8_t status_flags;         // Status flags (bit 0: smoothed data valid)
+    uint16_t sample_count;        // Number of samples used for smoothing
+} __attribute__((packed));
+
+// INA219 Battery Data (8 bytes)
+struct INA219Data {
+    uint16_t voltage_raw;         // Bus voltage in 0.1mV units (e.g., 12000 = 12.000V)
+    uint16_t current_raw;         // Current in 0.1mA units (e.g., 500 = 50.0mA)
+    uint16_t power_raw;           // Power in 0.1mW units (e.g., 60000 = 6.000W)
+    uint8_t sensor_id;            // Unique sensor identifier (0-255)
+    uint8_t status_flags;         // Status flags (bit 0: voltage valid, bit 1: current valid, bit 2: power valid)
+} __attribute__((packed));
+
 // Sensor Status Message (8 bytes)
 struct SensorStatus {
-    uint8_t sensor_type;          // 1=SHT31, 2=TMP36, 3=Other
+    uint8_t sensor_type;          // 1=SHT31, 2=TMP36, 3=MPU6050, 4=INA219
     uint8_t sensor_id;            // Unique sensor identifier
     uint8_t health_status;        // 0=OK, 1=Warning, 2=Error, 3=Critical
     uint8_t battery_level;        // Battery level 0-100%
@@ -139,6 +160,36 @@ inline float rawToAcceleration(int16_t raw_accel) {
 // Convert G-forces to MPU6050 raw acceleration
 inline int16_t accelerationToRaw(float g_force) {
     return (int16_t)(g_force * 16384.0f);
+}
+
+// Convert voltage from raw format to float (0.1mV units)
+inline float rawToVoltage(uint16_t raw_voltage) {
+    return raw_voltage / 10000.0f;  // Convert 0.1mV to V
+}
+
+// Convert voltage from float to raw format (0.1mV units)
+inline uint16_t voltageToRaw(float voltage) {
+    return (uint16_t)(voltage * 10000.0f);  // Convert V to 0.1mV
+}
+
+// Convert current from raw format to float (0.1mA units)
+inline float rawToCurrent(uint16_t raw_current) {
+    return raw_current / 10000.0f;  // Convert 0.1mA to A
+}
+
+// Convert current from float to raw format (0.1mA units)
+inline uint16_t currentToRaw(float current) {
+    return (uint16_t)(current * 10000.0f);  // Convert A to 0.1mA
+}
+
+// Convert power from raw format to float (0.1mW units)
+inline float rawToPower(uint16_t raw_power) {
+    return raw_power / 10000.0f;  // Convert 0.1mW to W
+}
+
+// Convert power from float to raw format (0.1mW units)
+inline uint16_t powerToRaw(float power) {
+    return (uint16_t)(power * 10000.0f);  // Convert W to 0.1mW
 }
 
 // Calculate simple checksum for data validation

@@ -14,41 +14,6 @@
 // External CAN manager instance
 extern CANManager* g_can_manager;
 
-// Send MPU6050 sensor data via CAN
-bool sendMPU6050Data(const MPU6050Data& data) {
-    if (!g_can_manager) {
-        Serial.println("ERROR: CAN manager not initialized");
-        return false;
-    }
-    
-    // Create CAN message
-    uint32_t can_id = CAN_MSG_MPU6050_IMU;
-    uint8_t can_data[8];
-    
-    // Pack data into CAN message (8 bytes)
-    can_data[0] = (data.accel_x >> 8) & 0xFF;  // High byte
-    can_data[1] = data.accel_x & 0xFF;         // Low byte
-    can_data[2] = (data.accel_y >> 8) & 0xFF;  // High byte
-    can_data[3] = data.accel_y & 0xFF;         // Low byte
-    can_data[4] = (data.accel_z >> 8) & 0xFF;  // High byte
-    can_data[5] = data.accel_z & 0xFF;         // Low byte
-    can_data[6] = data.sensor_id;
-    can_data[7] = data.status_flags;
-    
-    // Send via CAN
-    bool success = g_can_manager->sendMessage(can_id, can_data, 8);
-    
-    if (success) {
-        Serial.printf("Sent MPU6050 data: X=%.2fg, Y=%.2fg, Z=%.2fg\n",
-                     rawToAcceleration(data.accel_x),
-                     rawToAcceleration(data.accel_y),
-                     rawToAcceleration(data.accel_z));
-    } else {
-        Serial.println("ERROR: Failed to send MPU6050 data via CAN");
-    }
-    
-    return success;
-}
 
 // Send MPU6050 max values via CAN
 bool sendMPU6050MaxValues(const MPU6050MaxData& max_data) {
@@ -58,7 +23,7 @@ bool sendMPU6050MaxValues(const MPU6050MaxData& max_data) {
     }
     
     // Create CAN message for max values
-    uint32_t can_id = CAN_MSG_MPU6050_IMU + 1; // Use next ID for max values
+    uint32_t can_id = CAN_MSG_MPU6050_MAX;
     uint8_t can_data[8];
     
     // Pack max data into CAN message (8 bytes)
@@ -82,6 +47,43 @@ bool sendMPU6050MaxValues(const MPU6050MaxData& max_data) {
                      max_data.reset_counter);
     } else {
         Serial.println("ERROR: Failed to send MPU6050 max values via CAN");
+    }
+    
+    return success;
+}
+
+// Send MPU6050 smoothed data via CAN
+bool sendMPU6050SmoothedData(const MPU6050SmoothedData& smoothed_data) {
+    if (!g_can_manager) {
+        Serial.println("ERROR: CAN manager not initialized");
+        return false;
+    }
+    
+    // Create CAN message for smoothed data
+    uint32_t can_id = CAN_MSG_MPU6050_SMOOTHED;
+    uint8_t can_data[8];
+    
+    // Pack smoothed data into CAN message (8 bytes)
+    can_data[0] = (smoothed_data.smooth_accel_x >> 8) & 0xFF;  // High byte
+    can_data[1] = smoothed_data.smooth_accel_x & 0xFF;         // Low byte
+    can_data[2] = (smoothed_data.smooth_accel_y >> 8) & 0xFF;  // High byte
+    can_data[3] = smoothed_data.smooth_accel_y & 0xFF;         // Low byte
+    can_data[4] = (smoothed_data.smooth_accel_z >> 8) & 0xFF;  // High byte
+    can_data[5] = smoothed_data.smooth_accel_z & 0xFF;         // Low byte
+    can_data[6] = smoothed_data.sensor_id;
+    can_data[7] = smoothed_data.status_flags;
+    
+    // Send via CAN
+    bool success = g_can_manager->sendMessage(can_id, can_data, 8);
+    
+    if (success) {
+        Serial.printf("Sent MPU6050 smoothed data: X=%.2fg, Y=%.2fg, Z=%.2fg (%d samples)\n",
+                     rawToAcceleration(smoothed_data.smooth_accel_x),
+                     rawToAcceleration(smoothed_data.smooth_accel_y),
+                     rawToAcceleration(smoothed_data.smooth_accel_z),
+                     smoothed_data.sample_count);
+    } else {
+        Serial.println("ERROR: Failed to send MPU6050 smoothed data via CAN");
     }
     
     return success;

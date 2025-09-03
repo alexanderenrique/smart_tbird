@@ -45,7 +45,7 @@ static lv_disp_draw_buf_t draw_buf;
 static lv_color_t buf1[480 * 4];
 
 // CAN-Bus Configuration
-Adafruit_MCP2515 can;
+Adafruit_MCP2515 can(CAN_CS_PIN, CAN_MOSI_PIN, CAN_MISO_PIN, CAN_CLK_PIN);
 
 // CAN message reception tracking
 static unsigned long last_can_message = 0;
@@ -75,114 +75,144 @@ void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color
 }
 
 void my_touchpad_read(lv_indev_drv_t * indev_driver, lv_indev_data_t * data) {
-  uint16_t touchX, touchY;
-  if (tft.getTouch(&touchX, &touchY, 100)) {
-      data->state = LV_INDEV_STATE_PR;
-      data->point.x = touchX;
-      data->point.y = touchY;
-      Serial.printf("👆 Touch: X=%d Y=%d\n", touchX, touchY);
-  } else {
-      data->state = LV_INDEV_STATE_REL;
-  }
+  // Touch functionality disabled for now - TFT_eSPI touch not configured
+  // TODO: Configure TFT_eSPI touch pins or implement alternative touch method
+  data->state = LV_INDEV_STATE_REL;
 }
 
 // CAN message handlers
-void handleSHT31Data(const can_frame& frame) {
-    if (frame.can_dlc == sizeof(SHT31Data)) {
-        SHT31Data* data = (SHT31Data*)frame.data;
+void handleSHT31Data() {
+    if (can.parsePacket()) {
+        long id = can.packetId();
+        int dlc = can.packetDlc();
         
-        // Validate checksum
-        if (validateChecksum(frame.data, frame.can_dlc)) {
-            received_temp = rawToTemperature(data->temperature_raw);
-            received_humidity = rawToHumidity(data->humidity_raw);
-            sht31_sensor_id = data->sensor_id;
-            sensor_status = "SHT31 Connected";
-            connected_sensors |= 0x01; // Set bit 0 for SHT31
-            
-            // Update temperature display
-            if (temp_label) {
-                static char temp_buf[32];
-                float temp_f = (received_temp * 9.0/5.0) + 32.0;  // Convert C to F
-                snprintf(temp_buf, sizeof(temp_buf), "%.1f°F", temp_f);
-                lv_label_set_text(temp_label, temp_buf);
+        if (dlc == sizeof(SHT31Data)) {
+            SHT31Data data;
+            // Read data from CAN buffer
+            for (int i = 0; i < dlc; i++) {
+                ((uint8_t*)&data)[i] = can.read();
             }
             
-            // Update humidity display
-            if (humidity_label) {
-                static char humidity_buf[32];
-                snprintf(humidity_buf, sizeof(humidity_buf), "%.1f%%", received_humidity);
-                lv_label_set_text(humidity_label, humidity_buf);
-            }
-            
-            // Update status display
-            if (status_label) {
-                static char status_buf[64];
-                const char* temp_status = "Normal";
-                if (received_temp < 0) temp_status = "Cold";      // < 32°F
-                else if (received_temp < 20) temp_status = "Cool"; // < 68°F
-                else if (received_temp < 30) temp_status = "Normal"; // < 86°F
-                else if (received_temp < 40) temp_status = "Warm"; // < 104°F
-                else temp_status = "Hot";                          // >= 104°F
+            // Validate checksum
+            if (validateChecksum((uint8_t*)&data, dlc)) {
+                received_temp = rawToTemperature(data.temperature_raw);
+                received_humidity = rawToHumidity(data.humidity_raw);
+                sht31_sensor_id = data.sensor_id;
+                sensor_status = "SHT31 Connected";
+                connected_sensors |= 0x01; // Set bit 0 for SHT31
                 
-                snprintf(status_buf, sizeof(status_buf), "Status: %s", temp_status);
-                lv_label_set_text(status_label, status_buf);
-                
-                // Change color based on temperature
-                if (received_temp > 30) {
-                    lv_obj_set_style_text_color(status_label, lv_color_hex(0xFF0000), 0); // Red (>86°F)
-                } else if (received_temp < 10) {
-                    lv_obj_set_style_text_color(status_label, lv_color_hex(0x0000FF), 0); // Blue (<50°F)
-                } else {
-                    lv_obj_set_style_text_color(status_label, lv_color_hex(0x00FF00), 0); // Green (50-86°F)
+                // Update temperature display
+                if (temp_label) {
+                    static char temp_buf[32];
+                    float temp_f = (received_temp * 9.0/5.0) + 32.0;  // Convert C to F
+                    snprintf(temp_buf, sizeof(temp_buf), "%.1f°F", temp_f);
+                    lv_label_set_text(temp_label, temp_buf);
                 }
+                
+                // Update humidity display
+                if (humidity_label) {
+                    static char humidity_buf[32];
+                    snprintf(humidity_buf, sizeof(humidity_buf), "%.1f%%", received_humidity);
+                    lv_label_set_text(humidity_label, humidity_buf);
+                }
+                
+                // Update status display
+                if (status_label) {
+                    static char status_buf[64];
+                    const char* temp_status = "Normal";
+                    if (received_temp < 0) temp_status = "Cold";      // < 32°F
+                    else if (received_temp < 20) temp_status = "Cool"; // < 68°F
+                    else if (received_temp < 30) temp_status = "Normal"; // < 86°F
+                    else if (received_temp < 40) temp_status = "Warm"; // < 104°F
+                    else temp_status = "Hot";                          // >= 104°F
+                    
+                    snprintf(status_buf, sizeof(status_buf), "Status: %s", temp_status);
+                    lv_label_set_text(status_label, status_buf);
+                    
+                    // Change color based on temperature
+                    if (received_temp > 30) {
+                        lv_obj_set_style_text_color(status_label, lv_color_hex(0xFF0000), 0); // Red (>86°F)
+                    } else if (received_temp < 10) {
+                        lv_obj_set_style_text_color(status_label, lv_color_hex(0x0000FF), 0); // Blue (<50°F)
+                    } else {
+                        lv_obj_set_style_text_color(status_label, lv_color_hex(0x00FF00), 0); // Green (50-86°F)
+                    }
+                }
+                
+                Serial.printf("📡 CAN SHT31 - Temp: %.2f°C (%.1f°F), Humidity: %.1f%%, Sensor ID: %d\n", 
+                             received_temp, (received_temp * 9.0/5.0) + 32.0, received_humidity, sht31_sensor_id);
+            } else {
+                Serial.println("❌ SHT31 data checksum validation failed!");
             }
-            
-            Serial.printf("📡 CAN SHT31 - Temp: %.2f°C (%.1f°F), Humidity: %.1f%%, Sensor ID: %d\n", 
-                         received_temp, (received_temp * 9.0/5.0) + 32.0, received_humidity, sht31_sensor_id);
-        } else {
-            Serial.println("❌ SHT31 data checksum validation failed!");
         }
     }
 }
 
-void handleTMP36Data(const can_frame& frame) {
-    if (frame.can_dlc == sizeof(TMP36Data)) {
-        TMP36Data* data = (TMP36Data*)frame.data;
+void handleTMP36Data() {
+    if (can.parsePacket()) {
+        long id = can.packetId();
+        int dlc = can.packetDlc();
         
-        if (data->status_flags & 0x01) { // Temperature valid flag
-            received_temp = rawToTemperature(data->temperature_raw);
-            tmp36_sensor_id = data->sensor_id;
-            sensor_status = "TMP36 Connected";
-            connected_sensors |= 0x02; // Set bit 1 for TMP36
-            
-            // Update temperature display
-            if (temp_label) {
-                static char temp_buf[32];
-                float temp_f = (received_temp * 9.0/5.0) + 32.0;  // Convert C to F
-                snprintf(temp_buf, sizeof(temp_buf), "%.1f°F", temp_f);
-                lv_label_set_text(temp_label, temp_buf);
+        if (dlc == sizeof(TMP36Data)) {
+            TMP36Data data;
+            // Read data from CAN buffer
+            for (int i = 0; i < dlc; i++) {
+                ((uint8_t*)&data)[i] = can.read();
             }
             
-            Serial.printf("📡 CAN TMP36 - Temp: %.2f°C (%.1f°F), Sensor ID: %d\n", 
-                         received_temp, (received_temp * 9.0/5.0) + 32.0, tmp36_sensor_id);
+            if (data.status_flags & 0x01) { // Temperature valid flag
+                received_temp = rawToTemperature(data.temperature_raw);
+                tmp36_sensor_id = data.sensor_id;
+                sensor_status = "TMP36 Connected";
+                connected_sensors |= 0x02; // Set bit 1 for TMP36
+                
+                // Update temperature display
+                if (temp_label) {
+                    static char temp_buf[32];
+                    float temp_f = (received_temp * 9.0/5.0) + 32.0;  // Convert C to F
+                    snprintf(temp_buf, sizeof(temp_buf), "%.1f°F", temp_f);
+                    lv_label_set_text(temp_label, temp_buf);
+                }
+                
+                Serial.printf("📡 CAN TMP36 - Temp: %.2f°C (%.1f°F), Sensor ID: %d\n", 
+                             received_temp, (received_temp * 9.0/5.0) + 32.0, tmp36_sensor_id);
+            }
         }
     }
 }
 
-void handleSensorStatus(const can_frame& frame) {
-    if (frame.can_dlc == sizeof(SensorStatus)) {
-        SensorStatus* status = (SensorStatus*)frame.data;
-        Serial.printf("📊 Sensor Status - Type: %d, ID: %d, Health: %d, Battery: %d%%, Uptime: %ds, Errors: %d\n",
-                     status->sensor_type, status->sensor_id, status->health_status, 
-                     status->battery_level, status->uptime_seconds, status->error_count);
+void handleSensorStatus() {
+    if (can.parsePacket()) {
+        long id = can.packetId();
+        int dlc = can.packetDlc();
+        
+        if (dlc == sizeof(SensorStatus)) {
+            SensorStatus status;
+            // Read data from CAN buffer
+            for (int i = 0; i < dlc; i++) {
+                ((uint8_t*)&status)[i] = can.read();
+            }
+            Serial.printf("📊 Sensor Status - Type: %d, ID: %d, Health: %d, Battery: %d%%, Uptime: %ds, Errors: %d\n",
+                         status.sensor_type, status.sensor_id, status.health_status, 
+                         status.battery_level, status.uptime_seconds, status.error_count);
+        }
     }
 }
 
-void handleHeartbeat(const can_frame& frame) {
-    if (frame.can_dlc == sizeof(Heartbeat)) {
-        Heartbeat* hb = (Heartbeat*)frame.data;
-        Serial.printf("💓 Heartbeat - Device: %d, ID: %d, Uptime: %ds, Memory: %d bytes, Temp: %d°C\n",
-                     hb->device_type, hb->device_id, hb->uptime_seconds, hb->free_memory, hb->temperature);
+void handleHeartbeat() {
+    if (can.parsePacket()) {
+        long id = can.packetId();
+        int dlc = can.packetDlc();
+        
+        if (dlc == sizeof(Heartbeat)) {
+            Heartbeat hb;
+            // Read data from CAN buffer
+            for (int i = 0; i < dlc; i++) {
+                ((uint8_t*)&hb)[i] = can.read();
+            }
+            Serial.printf("💓 Heartbeat - Device: %d, ID: %d, Uptime: %ds, Memory: %d bytes, Temp: %d°C\n",
+                         hb.device_type, hb.device_id, hb.uptime_seconds, hb.free_memory, hb.temperature);
+        }
     }
 }
 
@@ -193,7 +223,7 @@ void setupCAN() {
     SPI.begin(CAN_CLK_PIN, CAN_MISO_PIN, CAN_MOSI_PIN, CAN_CS_PIN);
     
     // Initialize MCP2515 CAN controller
-    if (!can.begin(CAN_500KBPS)) {
+    if (!can.begin(500000)) { // 500 kbps
         Serial.println("❌ Failed to initialize CAN controller!");
         Serial.println("   Check MCP2515 connections and SPI pins");
         Serial.printf("   CS: GPIO%d, INT: GPIO%d, CLK: GPIO%d, MOSI: GPIO%d, MISO: GPIO%d\n",
@@ -288,8 +318,8 @@ void loop() {
     lv_timer_handler();
     
     // Handle CAN messages
-    can_frame frame;
-    if (can.readMessage(&frame) == MCP2515::ERROR_OK) {
+    if (can.parsePacket()) {
+        long id = can.packetId();
         last_can_message = millis();
         can_message_count++;
         
@@ -300,22 +330,22 @@ void loop() {
             lv_label_set_text(ip_label, can_status);
         }
         
-        // Route messages to appropriate handlers
-        switch (frame.can_id) {
+        // Route messages to appropriate handlers based on ID
+        switch (id) {
             case CAN_MSG_SHT31_TEMP_HUMIDITY:
-                handleSHT31Data(frame);
+                handleSHT31Data();
                 break;
             case CAN_MSG_TMP36_TEMPERATURE:
-                handleTMP36Data(frame);
+                handleTMP36Data();
                 break;
             case CAN_MSG_SENSOR_STATUS:
-                handleSensorStatus(frame);
+                handleSensorStatus();
                 break;
             case CAN_MSG_HEARTBEAT:
-                handleHeartbeat(frame);
+                handleHeartbeat();
                 break;
             default:
-                Serial.printf("❓ Unknown CAN ID: 0x%03X\n", frame.can_id);
+                Serial.printf("❓ Unknown CAN ID: 0x%03X\n", id);
                 break;
         }
     }

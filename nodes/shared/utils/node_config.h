@@ -1,0 +1,269 @@
+/*
+ * Node Configuration - Hardware-specific pin definitions
+ * =====================================================
+ * 
+ * This file defines hardware configurations for different node types
+ * and provides a unified interface for accessing pin assignments.
+ */
+
+#ifndef NODE_CONFIG_H
+#define NODE_CONFIG_H
+
+#include <Arduino.h>
+
+// ============================================================================
+// NODE TYPE DEFINITIONS
+// ============================================================================
+#define DISPLAY_NODE    1
+
+#define CENTRAL_NODE    5
+
+// ============================================================================
+// DISPLAY NODE CONFIGURATION (ESP32 with TFT Display + LDR)
+// ============================================================================
+#ifdef NODE_TYPE
+#if NODE_TYPE == DISPLAY_NODE
+
+// TFT Display Pins
+#define TFT_CS_PIN      15
+#define TFT_DC_PIN      2
+#define TFT_RST_PIN     4
+#define TFT_MOSI_PIN    23
+#define TFT_SCLK_PIN    18
+#define TFT_MISO_PIN    19
+#define TFT_BL_PIN      5
+
+// Touch Screen Pins
+#define TOUCH_CS_PIN    14
+#define TOUCH_IRQ_PIN   13
+
+// LDR Sensor Pins (for auto-dimming)
+#define LDR_ANALOG_PIN      36
+#define LDR_PULLUP_PIN      39
+
+// CAN Bus Pins
+#define CAN_CS_PIN      5
+#define CAN_INT_PIN     2
+#define CAN_CLK_PIN     18
+#define CAN_MOSI_PIN    23
+#define CAN_MISO_PIN    19
+
+// Status LED
+#define STATUS_LED_PIN  2
+
+// Node Configuration
+#define NODE_NAME       "Display Node"
+#define SENSOR_READ_INTERVAL  2000    // 2 seconds (faster for LDR)
+#define HEARTBEAT_INTERVAL    30000   // 30 seconds
+
+// LDR Configuration (from proven ldr_auto_dim_test)
+#define LDR_VOLTAGE_REF       3.3     // Reference voltage
+#define LDR_READ_INTERVAL     500     // Read LDR every 500ms (faster response)
+#define LDR_BRIGHTNESS_MIN    20      // Minimum brightness (prevents flickering)
+#define LDR_BRIGHTNESS_MAX    255     // Maximum brightness
+#define LDR_DARK_THRESHOLD    100     // LDR value below which is "dark"
+#define LDR_BRIGHT_THRESHOLD  800     // LDR value above which is "bright"
+#define LDR_GAMMA             2.2f    // Gamma correction for human perception
+#define LDR_SMOOTHING_FACTOR  8       // Higher = slower changes (1-16)
+#define LDR_AVERAGE_SAMPLES   100     // Number of samples to average (10 seconds)
+#define LDR_PWM_FREQUENCY     25000   // PWM frequency (25kHz for less flicker)
+#define LDR_PWM_RESOLUTION    8       // PWM resolution (8-bit)
+
+#endif // DISPLAY_NODE
+#endif // NODE_TYPE
+
+// ============================================================================
+// SHT31 NODE CONFIGURATION (ESP32-C3 with SHT31 Sensor)
+// ============================================================================
+#ifdef NODE_TYPE
+#if NODE_TYPE == SHT31_NODE
+
+// SHT31 Sensor Pins (I2C)
+#define SHT31_SDA_PIN   8
+#define SHT31_SCL_PIN   9
+
+// CAN Bus Pins
+#define CAN_CS_PIN      5
+#define CAN_INT_PIN     2
+#define CAN_CLK_PIN     6
+#define CAN_MOSI_PIN    7
+#define CAN_MISO_PIN    4
+
+// Status LED
+#define STATUS_LED_PIN  2
+
+// Node Configuration
+#define NODE_NAME       "SHT31 Node"
+#define SENSOR_READ_INTERVAL  5000    // 5 seconds
+#define HEARTBEAT_INTERVAL    30000   // 30 seconds
+#define SHT31_ADDRESS         0x44    // Default I2C address
+
+#endif // SHT31_NODE
+#endif // NODE_TYPE
+
+// ============================================================================
+// TMP36 NODE CONFIGURATION (ESP32 with TMP36 Sensor)
+// ============================================================================
+#ifdef NODE_TYPE
+#if NODE_TYPE == TMP36_NODE
+
+// TMP36 Sensor Pin (Analog)
+#define TMP36_ANALOG_PIN    36
+
+// CAN Bus Pins
+#define CAN_CS_PIN      5
+#define CAN_INT_PIN     2
+#define CAN_CLK_PIN     18
+#define CAN_MOSI_PIN    23
+#define CAN_MISO_PIN    19
+
+// Status LED
+#define STATUS_LED_PIN  2
+
+// Node Configuration
+#define NODE_NAME       "TMP36 Node"
+#define SENSOR_READ_INTERVAL  5000    // 5 seconds
+#define HEARTBEAT_INTERVAL    30000   // 30 seconds
+#define TMP36_VOLTAGE_REF     3.3     // Reference voltage
+#define TMP36_OFFSET          0.5     // Voltage offset at 0°C
+
+#endif // TMP36_NODE
+#endif // NODE_TYPE
+
+// ============================================================================
+// LDR NODE CONFIGURATION (ESP32 with Light Dependent Resistor)
+// ============================================================================
+#ifdef NODE_TYPE
+#if NODE_TYPE == LDR_NODE
+
+// LDR Sensor Pin (Analog)
+#define LDR_ANALOG_PIN      36
+#define LDR_PULLUP_PIN      39
+
+// CAN Bus Pins
+#define CAN_CS_PIN      5
+#define CAN_INT_PIN     2
+#define CAN_CLK_PIN     18
+#define CAN_MOSI_PIN    23
+#define CAN_MISO_PIN    19
+
+// Status LED
+#define STATUS_LED_PIN  2
+
+// Node Configuration
+#define NODE_NAME       "LDR Node"
+#define SENSOR_READ_INTERVAL  2000    // 2 seconds
+#define HEARTBEAT_INTERVAL    30000   // 30 seconds
+#define LDR_VOLTAGE_REF       3.3     // Reference voltage
+
+#endif // LDR_NODE
+#endif // NODE_TYPE
+
+// ============================================================================
+// CENTRAL NODE CONFIGURATION (ESP32 with SHT31 + MPU6050)
+// ============================================================================
+#ifdef NODE_TYPE
+#if NODE_TYPE == CENTRAL_NODE
+
+// SHT31 Sensor Pins (I2C)
+#define SHT31_SDA_PIN   21
+#define SHT31_SCL_PIN   22
+#define SHT31_ADDRESS   0x44
+
+// MPU6050 Sensor Pins (I2C - same bus as SHT31)
+#define MPU6050_SDA_PIN 21
+#define MPU6050_SCL_PIN 22
+#define MPU6050_ADDRESS 0x68
+
+// CAN Bus Pins
+#define CAN_CS_PIN      5
+#define CAN_INT_PIN     2
+#define CAN_CLK_PIN     18
+#define CAN_MOSI_PIN    23
+#define CAN_MISO_PIN    19
+
+// Status LED
+#define STATUS_LED_PIN  2
+
+// Node Configuration
+#define NODE_NAME       "Central Node"
+#define SENSOR_READ_INTERVAL  10      // 10ms = 100Hz for MPU6050
+#define HEARTBEAT_INTERVAL    30000   // 30 seconds
+#define SHT31_SENSOR_ID       1
+#define MPU6050_SENSOR_ID     2
+
+// MPU6050 Configuration
+#define MPU6050_ACCEL_RANGE   2       // ±2g range for automotive use
+#define MPU6050_GYRO_RANGE    250     // ±250°/s range
+#define MPU6050_DLPF_CONFIG   3       // Digital Low-Pass Filter: ~44Hz cutoff
+#define MPU6050_MAX_RESET_INTERVAL 300000  // Reset max values every 5 minutes
+
+#endif // CENTRAL_NODE
+#endif // NODE_TYPE
+
+// ============================================================================
+// COMMON CONFIGURATION
+// ============================================================================
+
+// Default values if not defined
+#ifndef NODE_NAME
+#define NODE_NAME       "Unknown Node"
+#endif
+
+#ifndef SENSOR_READ_INTERVAL
+#define SENSOR_READ_INTERVAL  5000
+#endif
+
+#ifndef HEARTBEAT_INTERVAL
+#define HEARTBEAT_INTERVAL    30000
+#endif
+
+#ifndef STATUS_LED_PIN
+#define STATUS_LED_PIN  2
+#endif
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+// Get node type name as string
+inline const char* getNodeTypeName() {
+    #ifdef NODE_TYPE
+    switch (NODE_TYPE) {
+        case DISPLAY_NODE: return "Display";
+        case SHT31_NODE:   return "SHT31";
+        case TMP36_NODE:   return "TMP36";
+        case LDR_NODE:     return "LDR";
+        case CENTRAL_NODE: return "Central";
+        default:           return "Unknown";
+    }
+    #else
+    return "Undefined";
+    #endif
+}
+
+// Get node ID as string
+inline const char* getNodeIdString() {
+    #ifdef NODE_ID
+    static char id_str[8];
+    snprintf(id_str, sizeof(id_str), "%d", NODE_ID);
+    return id_str;
+    #else
+    return "0";
+    #endif
+}
+
+// Print node configuration
+inline void printNodeConfig() {
+    Serial.println("=== Node Configuration ===");
+    Serial.printf("Name: %s\n", NODE_NAME);
+    Serial.printf("Type: %s (ID: %s)\n", getNodeTypeName(), getNodeIdString());
+    Serial.printf("Sensor Read Interval: %d ms\n", SENSOR_READ_INTERVAL);
+    Serial.printf("Heartbeat Interval: %d ms\n", HEARTBEAT_INTERVAL);
+    Serial.printf("Status LED Pin: %d\n", STATUS_LED_PIN);
+    Serial.printf("CAN CS Pin: %d\n", CAN_CS_PIN);
+    Serial.printf("CAN INT Pin: %d\n", CAN_INT_PIN);
+    Serial.println("==========================");
+}
+
+#endif // NODE_CONFIG_H

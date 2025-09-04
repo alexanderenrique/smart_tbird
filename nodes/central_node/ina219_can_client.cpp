@@ -22,24 +22,18 @@ bool sendINA219BatteryData(const INA219Data& battery_data) {
     uint32_t can_id = CAN_MSG_INA219_BATTERY;
     uint8_t can_data[8];
     
-    // Pack data into CAN message
+    // Pack data into CAN message (voltage only)
     can_data[0] = (battery_data.voltage_raw >> 8) & 0xFF;
     can_data[1] = battery_data.voltage_raw & 0xFF;
-    can_data[2] = (battery_data.current_raw >> 8) & 0xFF;
-    can_data[3] = battery_data.current_raw & 0xFF;
-    can_data[4] = (battery_data.power_raw >> 8) & 0xFF;
-    can_data[5] = battery_data.power_raw & 0xFF;
-    can_data[6] = battery_data.sensor_id;
-    can_data[7] = battery_data.status_flags;
+    can_data[2] = battery_data.sensor_id;
+    can_data[3] = battery_data.status_flags;
     
-    // Send message
-    bool success = g_can_manager->sendMessage(can_id, can_data, 8);
+    // Send message (4 bytes)
+    bool success = g_can_manager->sendMessage(can_id, can_data, 4);
     
     if (success) {
-        Serial.printf("Sent INA219 data: %.3fV, %.3fA, %.3fW\n", 
-                     rawToVoltage(battery_data.voltage_raw),
-                     rawToCurrent(battery_data.current_raw),
-                     rawToPower(battery_data.power_raw));
+        Serial.printf("Sent INA219 data: %.3fV\n", 
+                     rawToVoltage(battery_data.voltage_raw));
     } else {
         Serial.println("ERROR: Failed to send INA219 data via CAN");
     }

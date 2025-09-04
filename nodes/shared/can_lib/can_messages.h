@@ -98,13 +98,11 @@ struct MPU6050SmoothedData {
     uint16_t sample_count;        // Number of samples used for smoothing
 } __attribute__((packed));
 
-// INA219 Battery Data (8 bytes)
+// INA219 Battery Data (4 bytes) - Voltage only
 struct INA219Data {
     uint16_t voltage_raw;         // Bus voltage in 0.1mV units (e.g., 12000 = 12.000V)
-    uint16_t current_raw;         // Current in 0.1mA units (e.g., 500 = 50.0mA)
-    uint16_t power_raw;           // Power in 0.1mW units (e.g., 60000 = 6.000W)
     uint8_t sensor_id;            // Unique sensor identifier (0-255)
-    uint8_t status_flags;         // Status flags (bit 0: voltage valid, bit 1: current valid, bit 2: power valid)
+    uint8_t status_flags;         // Status flags (bit 0: voltage valid)
 } __attribute__((packed));
 
 // Sensor Status Message (8 bytes)

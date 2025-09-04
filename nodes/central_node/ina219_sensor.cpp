@@ -60,9 +60,7 @@ bool INA219Sensor::begin(float shunt_resistor, float max_current) {
     }
     
     _initialized = true;
-    Serial.printf("INA219 initialized successfully (Shunt: %.3fΩ, Max Current: %.1fA)\n", 
-                  _shunt_resistor, _max_current);
-    Serial.printf("Current LSB: %.6fA, Power LSB: %.6fW\n", _current_lsb, _power_lsb);
+    Serial.printf("INA219 initialized successfully (Voltage monitoring only)\n");
     
     return true;
 }
@@ -73,18 +71,16 @@ bool INA219Sensor::readSensorData(INA219Data& data) {
         return false;
     }
     
-    // Read all sensor values
-    if (!readBusVoltage() || !readShuntVoltage() || !readCurrent() || !readPower()) {
+    // Read only bus voltage (current and power not needed)
+    if (!readBusVoltage()) {
         _error_count++;
         return false;
     }
     
     // Convert to raw format for CAN transmission
     data.voltage_raw = voltageToRaw(_converted_data.bus_voltage);
-    data.current_raw = currentToRaw(_converted_data.current);
-    data.power_raw = powerToRaw(_converted_data.power);
     data.sensor_id = INA219_SENSOR_ID;
-    data.status_flags = 0x07; // All three values valid (voltage, current, power)
+    data.status_flags = 0x01; // Only voltage valid
     
     _successful_reads++;
     return true;
@@ -200,9 +196,6 @@ void INA219Sensor::printStatus() const {
     
     if (_initialized) {
         Serial.printf("Bus Voltage: %.3fV\n", _converted_data.bus_voltage);
-        Serial.printf("Shunt Voltage: %.6fV\n", _converted_data.shunt_voltage);
-        Serial.printf("Current: %.3fA\n", _converted_data.current);
-        Serial.printf("Power: %.3fW\n", _converted_data.power);
     }
     Serial.println("====================");
 }

@@ -316,10 +316,8 @@ void loop() {
             if (ina219.readSensorData(ina219_data)) {
                 // Send battery data via CAN
                 if (sendINA219BatteryData(ina219_data)) {
-                    Serial.printf("Sent INA219 data: %.3fV, %.3fA, %.3fW\n", 
-                                 rawToVoltage(ina219_data.voltage_raw),
-                                 rawToCurrent(ina219_data.current_raw),
-                                 rawToPower(ina219_data.power_raw));
+                    Serial.printf("Sent INA219 data: %.3fV\n", 
+                                 rawToVoltage(ina219_data.voltage_raw));
                 } else {
                     Serial.println("ERROR: Failed to send INA219 data");
                     error_count++;

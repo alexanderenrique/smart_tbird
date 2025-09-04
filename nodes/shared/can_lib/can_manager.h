@@ -19,7 +19,7 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <Adafruit_MCP2515.h>
-#include "../can_messages.h"
+#include "can_messages.h"
 
 class CANManager {
 private:

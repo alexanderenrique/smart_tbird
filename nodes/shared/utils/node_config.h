@@ -28,13 +28,13 @@
 #if NODE_TYPE == DISPLAY_NODE
 
 // TFT Display Pins
-#define TFT_CS_PIN      15
-#define TFT_DC_PIN      2
-#define TFT_RST_PIN     4
-#define TFT_MOSI_PIN    23
-#define TFT_SCLK_PIN    18
+#define TFT_CS_PIN      27
+#define TFT_DC_PIN      12
+#define TFT_RST_PIN     13
+#define TFT_MOSI_PIN    33
+#define TFT_SCLK_PIN    32
 #define TFT_MISO_PIN    19
-#define TFT_BL_PIN      5
+#define TFT_BL_PIN      25
 
 // Touch Screen Pins
 #define TOUCH_CS_PIN    14

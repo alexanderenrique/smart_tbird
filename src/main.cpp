@@ -7,7 +7,7 @@ TFT_eSPI tft = TFT_eSPI();
 
 // LVGL Display Buffer
 static lv_disp_draw_buf_t draw_buf;
-static lv_color_t buf[320 * 10];
+static lv_color_t buf[320 * 4];  // Reduced buffer size for stability
 
 // LVGL Display and Input Device
 static lv_disp_drv_t disp_drv;
@@ -76,6 +76,9 @@ void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data) {
 }
 
 void updateDummySHT31Data() {
+    // Safety check
+    if (!temp_label || !humidity_label) return;
+    
     // Simulate realistic temperature and humidity variations
     dummy_temp += (random(-10, 11) / 100.0); // ±0.1°C variation
     dummy_humidity += (random(-20, 21) / 100.0); // ±0.2% variation
@@ -89,10 +92,6 @@ void updateDummySHT31Data() {
     lv_label_set_text_fmt(temp_label, "Interior Temp: %.1f°C", dummy_temp);
     lv_label_set_text_fmt(humidity_label, "Interior Humidity: %.1f%%", dummy_humidity);
     
-    // Force display refresh by invalidating the label areas
-    lv_obj_invalidate(temp_label);
-    lv_obj_invalidate(humidity_label);
-    
     // Debug output to track updates
     static unsigned long last_sht31_debug = 0;
     if (millis() - last_sht31_debug > 2000) { // Print every 2 seconds
@@ -104,6 +103,9 @@ void updateDummySHT31Data() {
 }
 
 void updateDummyMPU6050Data() {
+    // Safety check
+    if (!accel_x_label || !accel_y_label || !accel_z_label) return;
+    
     // Simulate realistic acceleration data
     dummy_accel_x += (random(-50, 51) / 1000.0); // ±0.05g variation
     dummy_accel_y += (random(-50, 51) / 1000.0);
@@ -116,14 +118,12 @@ void updateDummyMPU6050Data() {
     lv_label_set_text_fmt(accel_x_label, "X: %.2f g", dummy_accel_x);
     lv_label_set_text_fmt(accel_y_label, "Y: %.2f g", dummy_accel_y);
     lv_label_set_text_fmt(accel_z_label, "Z: %.2f g", dummy_accel_z);
-    
-    // Force display refresh
-    lv_obj_invalidate(accel_x_label);
-    lv_obj_invalidate(accel_y_label);
-    lv_obj_invalidate(accel_z_label);
 }
 
 void updateDummyINA219Data() {
+    // Safety check
+    if (!voltage_label || !current_label || !power_label) return;
+    
     // Simulate realistic power monitoring data
     dummy_voltage += (random(-20, 21) / 100.0); // ±0.2V variation
     dummy_current += (random(-10, 11) / 100.0); // ±0.1A variation
@@ -139,13 +139,13 @@ void updateDummyINA219Data() {
     lv_label_set_text_fmt(voltage_label, "Voltage: %.1f V", dummy_voltage);
     lv_label_set_text_fmt(current_label, "Current: %.1f A", dummy_current);
     lv_label_set_text_fmt(power_label, "Power: %.1f W", dummy_power);
-    
-    // Force display refresh
-    lv_obj_invalidate(voltage_label);
 
 }
 
 void updateBrightness(int ldr_value) {
+    // Safety check
+    if (!brightness_label) return;
+    
     // Convert LDR reading (0-1023) to brightness (0-255)
     // INVERTED LOGIC: Lower LDR values = darker environment = dimmer display
     // Higher LDR values = brighter environment = brighter display
@@ -168,7 +168,6 @@ void updateBrightness(int ldr_value) {
     
     // Update brightness display
     lv_label_set_text_fmt(brightness_label, "Brightness: %d%%", (brightness * 100) / 255);
-    lv_obj_invalidate(brightness_label);
     
     // Debug output
     static unsigned long last_brightness_print = 0;
@@ -179,6 +178,9 @@ void updateBrightness(int ldr_value) {
 }
 
 void updateRealLDRData() {
+    // Safety check
+    if (!ldr_label) return;
+    
     // Read actual LDR value from pin 4
     int ldr_raw = analogRead(4);
     
@@ -217,9 +219,6 @@ void updateRealLDRData() {
     // Update the display with smoothed LDR reading
     lv_label_set_text_fmt(ldr_label, "LDR: %d (avg: %d)", ldr_raw, ldr_smoothed);
     
-    // Force display refresh by invalidating the label area
-    lv_obj_invalidate(ldr_label);
-    
     // Update brightness based on smoothed LDR reading
     updateBrightness(ldr_smoothed);
     
@@ -243,6 +242,9 @@ void updateRealLDRData() {
 }
 
 void updateDummySystemStatus() {
+    // Safety check
+    if (!system_status_label) return;
+    
     // Simulate system status changes
     static int status_counter = 0;
     status_counter++;
@@ -258,100 +260,123 @@ void updateDummySystemStatus() {
 
 void setup() {
     Serial.begin(9600);
-    Serial.println("Smart Thunderbird Display Node - DEMO MODE");
+    Serial.println("=== SMART THUNDERBIRD DISPLAY NODE - DEMO MODE ===");
     
     // Initialize random seed for dummy data
     randomSeed(analogRead(0));
+    Serial.println("Random seed initialized");
     
     // Initialize TFT
+    Serial.println("Initializing TFT...");
     tft.init();
     tft.setRotation(0); // Set rotation to 0 for portrait mode
     tft.fillScreen(TFT_BLACK);
+    Serial.println("TFT initialized");
     
     // Initialize backlight PWM
     pinMode(25, OUTPUT);
     analogWrite(25, 128); // Start at 50% brightness
+    Serial.println("Backlight initialized");
     
     // Initialize LVGL
+    Serial.println("Initializing LVGL...");
     lv_init();
-    lv_disp_draw_buf_init(&draw_buf, buf, NULL, 320 * 10);
+    lv_disp_draw_buf_init(&draw_buf, buf, NULL, 320 * 4);  // Reduced buffer size
+    Serial.println("LVGL buffer initialized");
     
     // Initialize display driver
+    Serial.println("Initializing display driver...");
     lv_disp_drv_init(&disp_drv);
     disp_drv.hor_res = 320;  // Portrait mode: width = 320
     disp_drv.ver_res = 480;  // Portrait mode: height = 480
     disp_drv.flush_cb = my_disp_flush;
     disp_drv.draw_buf = &draw_buf;
     lv_disp_drv_register(&disp_drv);
+    Serial.println("Display driver registered");
     
     // Initialize input device driver
+    Serial.println("Initializing input device...");
     lv_indev_drv_init(&indev_drv);
     indev_drv.type = LV_INDEV_TYPE_POINTER;
     indev_drv.read_cb = my_touchpad_read;
     lv_indev_drv_register(&indev_drv);
+    Serial.println("Input device registered");
     
     // Create UI elements
+    Serial.println("Creating UI elements...");
     lv_obj_t *scr = lv_scr_act();
     lv_obj_set_style_bg_color(scr, BACKGROUND_COLOR, LV_PART_MAIN);
+    Serial.println("Screen background set");
     
     // Title
+    Serial.println("Creating title label...");
     lv_obj_t *title = lv_label_create(scr);
     lv_label_set_text(title, "Alex's Thunderbird");
-    lv_obj_set_style_text_font(title, TITLE_FONT, LV_PART_MAIN);
     lv_obj_set_style_text_color(title, TEXT_COLOR, LV_PART_MAIN);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 10);
+    Serial.println("Title label created");
     
     // SHT31 Section    
+    Serial.println("Creating SHT31 labels...");
     temp_label = lv_label_create(scr);
     lv_label_set_text_fmt(temp_label, "InteriorTemp: %.1f°C", dummy_temp);
-    lv_obj_set_style_text_font(temp_label, TEXT_FONT, LV_PART_MAIN);
     lv_obj_set_style_text_color(temp_label, TEXT_COLOR, LV_PART_MAIN);
     lv_obj_align(temp_label, LV_ALIGN_TOP_LEFT, 20, 80);
     
     humidity_label = lv_label_create(scr);
     lv_label_set_text_fmt(humidity_label, "Interior Humidity: %.1f%%", dummy_humidity);
-    lv_obj_set_style_text_font(humidity_label, TEXT_FONT, LV_PART_MAIN);
     lv_obj_set_style_text_color(humidity_label, TEXT_COLOR, LV_PART_MAIN);
     lv_obj_align(humidity_label, LV_ALIGN_TOP_LEFT, 20, 105);
+    Serial.println("SHT31 labels created");
     
     // MPU6050 Section    
+    Serial.println("Creating MPU6050 labels...");
     accel_x_label = lv_label_create(scr);
     lv_label_set_text_fmt(accel_x_label, "X: %.2f g", dummy_accel_x);
-    lv_obj_set_style_text_font(accel_x_label, TEXT_FONT, LV_PART_MAIN);
     lv_obj_set_style_text_color(accel_x_label, TEXT_COLOR, LV_PART_MAIN);
     lv_obj_align(accel_x_label, LV_ALIGN_TOP_LEFT, 20, 170);
     
     accel_y_label = lv_label_create(scr);
     lv_label_set_text_fmt(accel_y_label, "Y: %.2f g", dummy_accel_y);
-    lv_obj_set_style_text_font(accel_y_label, TEXT_FONT, LV_PART_MAIN);
     lv_obj_set_style_text_color(accel_y_label, TEXT_COLOR, LV_PART_MAIN);
     lv_obj_align(accel_y_label, LV_ALIGN_TOP_LEFT, 20, 195);
     
     accel_z_label = lv_label_create(scr);
     lv_label_set_text_fmt(accel_z_label, "Z: %.2f g", dummy_accel_z);
-    lv_obj_set_style_text_font(accel_z_label, TEXT_FONT, LV_PART_MAIN);
     lv_obj_set_style_text_color(accel_z_label, TEXT_COLOR, LV_PART_MAIN);
     lv_obj_align(accel_z_label, LV_ALIGN_TOP_LEFT, 20, 220);
+    Serial.println("MPU6050 labels created");
     
     // INA219 Section
+    Serial.println("Creating INA219 labels...");
     voltage_label = lv_label_create(scr);
     lv_label_set_text_fmt(voltage_label, "Voltage: %.1f V", dummy_voltage);
-    lv_obj_set_style_text_font(voltage_label, TEXT_FONT, LV_PART_MAIN);
     lv_obj_set_style_text_color(voltage_label, TEXT_COLOR, LV_PART_MAIN);
     lv_obj_align(voltage_label, LV_ALIGN_TOP_LEFT, 20, 285);
     
+    current_label = lv_label_create(scr);
+    lv_label_set_text_fmt(current_label, "Current: %.1f A", dummy_current);
+    lv_obj_set_style_text_color(current_label, TEXT_COLOR, LV_PART_MAIN);
+    lv_obj_align(current_label, LV_ALIGN_TOP_LEFT, 20, 310);
+    
+    power_label = lv_label_create(scr);
+    lv_label_set_text_fmt(power_label, "Power: %.1f W", dummy_power);
+    lv_obj_set_style_text_color(power_label, TEXT_COLOR, LV_PART_MAIN);
+    lv_obj_align(power_label, LV_ALIGN_TOP_LEFT, 20, 335);
+    Serial.println("INA219 labels created");
+    
     // LDR Section    
+    Serial.println("Creating LDR labels...");
     ldr_label = lv_label_create(scr);
     lv_label_set_text(ldr_label, "LDR: Initializing...");
-    lv_obj_set_style_text_font(ldr_label, TEXT_FONT, LV_PART_MAIN);
     lv_obj_set_style_text_color(ldr_label, TEXT_COLOR, LV_PART_MAIN);
     lv_obj_align(ldr_label, LV_ALIGN_TOP_LEFT, 20, 385);
     
     brightness_label = lv_label_create(scr);
     lv_label_set_text(brightness_label, "Brightness: Initializing...");
-    lv_obj_set_style_text_font(brightness_label, TEXT_FONT, LV_PART_MAIN);
     lv_obj_set_style_text_color(brightness_label, TEXT_COLOR, LV_PART_MAIN);
     lv_obj_align(brightness_label, LV_ALIGN_TOP_LEFT, 20, 410);
+    Serial.println("LDR labels created");
     
     // Test LDR reading immediately after setup
     int initial_ldr = analogRead(4);
@@ -362,38 +387,35 @@ void setup() {
     updateBrightness(initial_ldr);
     
     // Status Section
+    Serial.println("Creating status labels...");
     can_status_label = lv_label_create(scr);
     lv_label_set_text(can_status_label, "CAN: DEMO");
-    lv_obj_set_style_text_font(can_status_label, TEXT_FONT, LV_PART_MAIN);
     lv_obj_set_style_text_color(can_status_label, TEXT_COLOR, LV_PART_MAIN);
     lv_obj_align(can_status_label, LV_ALIGN_TOP_RIGHT, -20, 50);
     
     system_status_label = lv_label_create(scr);
     lv_label_set_text(system_status_label, "System: OK");
-    lv_obj_set_style_text_font(system_status_label, TEXT_FONT, LV_PART_MAIN);
     lv_obj_set_style_text_color(system_status_label, TEXT_COLOR, LV_PART_MAIN);
     lv_obj_align(system_status_label, LV_ALIGN_TOP_RIGHT, -20, 80);
+    Serial.println("Status labels created");
     
-    Serial.println("RUNNING IN DEMO MODE - Displaying dummy sensor data");
+    Serial.println("=== SETUP COMPLETE - RUNNING IN DEMO MODE ===");
 }
 
 void loop() {
-    // Update dummy sensor data
-    updateDummySHT31Data();
-    updateDummyMPU6050Data();
-    updateDummyINA219Data();
-    updateRealLDRData();
-    updateDummySystemStatus();
+    // Update dummy sensor data with timing control
+    static unsigned long last_update = 0;
+    if (millis() - last_update >= 100) { // Update every 100ms instead of every 5ms
+        updateDummySHT31Data();
+        updateDummyMPU6050Data();
+        updateDummyINA219Data();
+        updateRealLDRData();
+        updateDummySystemStatus();
+        last_update = millis();
+    }
     
     // Handle LVGL tasks
     lv_timer_handler();
-    
-    // Force screen refresh every few iterations to ensure updates are visible
-    static int refresh_counter = 0;
-    refresh_counter++;
-    if (refresh_counter % 10 == 0) { // Every 10 loop iterations
-        lv_refr_now(NULL); // Force immediate screen refresh
-    }
     
     // Debug: Print loop iteration count occasionally
     static unsigned long loop_count = 0;
@@ -405,5 +427,5 @@ void loop() {
         last_loop_debug = millis();
     }
     
-    delay(5);
+    delay(10); // Increased delay to reduce CPU load
 }

@@ -41,8 +41,7 @@
 #define TOUCH_IRQ_PIN   13
 
 // LDR Sensor Pins (for auto-dimming)
-#define LDR_ANALOG_PIN      36
-#define LDR_PULLUP_PIN      39
+#define LDR_ANALOG_PIN      4
 
 // CAN Bus Pins
 #define CAN_CS_PIN      5

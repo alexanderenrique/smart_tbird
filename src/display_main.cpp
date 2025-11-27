@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include <lvgl.h>
 #include <TFT_eSPI.h>
+#include <driver/ledc.h>
+#include <math.h>
 
 // TFT Display
 TFT_eSPI tft = TFT_eSPI();
@@ -154,38 +156,59 @@ void updateBrightness(int ldr_value) {
     // Safety check
     if (!brightness_label) return;
     
-    // Convert LDR reading (0-1023) to brightness (0-255)
-    // INVERTED LOGIC: Lower LDR values = darker environment = dimmer display
-    // Higher LDR values = brighter environment = brighter display
+    // Advanced brightness calculation with gamma correction
+    // LDR 0-900 → PWM 26-255 (10%-100%)
+    // LDR = 0 → 10% PWM, LDR > 900 → 100% PWM
     
-    int brightness;
-    if (ldr_value < 100) {
-        // Very dark - minimum brightness
-        brightness = 30;
-    } else if (ldr_value > 800) {
-        // Very bright - maximum brightness
-        brightness = 255;
-    } else {
-        // Linear mapping from 100-800 LDR to 30-255 brightness
-        // Lower LDR = dimmer display
-        brightness = map(ldr_value, 100, 800, 30, 255);
-    }
+    // Clamp LDR value to 0-900 range
+    if (ldr_value < 0) ldr_value = 0;
+    if (ldr_value > 900) ldr_value = 900;
     
-    // Set PWM brightness on pin 25
-    analogWrite(25, brightness);
+    // Normalize LDR to 0.0-1.0 range
+    float normalized = (float)ldr_value / 900.0f;
+    
+    // Apply gamma correction (2.2) for better human perception
+    // This makes the brightness curve more perceptually linear
+    float gamma_corrected = pow(normalized, 1.0f / 2.2f);
+    
+    // Convert to PWM value (26-255, where 26 = 10% minimum)
+    const int min_brightness = 26; // 10% of 255
+    const int max_brightness = 255; // 100%
+    int target_brightness = min_brightness + (int)(gamma_corrected * (max_brightness - min_brightness));
+    
+    // Exponential smoothing for brightness transitions (smoothing factor = 8)
+    // This prevents rapid flickering and makes transitions smooth
+    static int current_brightness = 128; // Start at middle brightness (will adjust to min 10%)
+    const float smoothing_factor = 8.0f; // Higher = slower changes
+    
+    // Exponential moving average: new = old + (target - old) / smoothing_factor
+    current_brightness = current_brightness + (target_brightness - current_brightness) / smoothing_factor;
+    
+    // Ensure we're within valid range (10%-100%)
+    if (current_brightness < min_brightness) current_brightness = min_brightness;
+    if (current_brightness > 255) current_brightness = 255;
+    
+    // Set PWM brightness on pin 25 using LEDC
+    ledcWrite(0, current_brightness);
     
     // Update brightness display
     char brightness_text[30];
-    sprintf(brightness_text, "Brightness: %d%%", (brightness * 100) / 255);
+    sprintf(brightness_text, "Brightness: %d%%", (current_brightness * 100) / 255);
     lv_label_set_text(brightness_label, brightness_text);
     
     // Force refresh of this label
     lv_obj_invalidate(brightness_label);
     
-    // Debug output
+    // Debug output with PWM value confirmation
     static unsigned long last_brightness_print = 0;
-    if (millis() - last_brightness_print > 2000) { // Print every 2 seconds
-        Serial.printf("LDR: %d -> Brightness: %d (%d%%)\n", ldr_value, brightness, (brightness * 100) / 255);
+    static int last_brightness_set = -1;
+    if (millis() - last_brightness_print > 1000) { // Print every second
+        Serial.printf("LDR: %d -> Target: %d, Current: %d (%d%%) [Gamma corrected]\n", 
+                     ldr_value, target_brightness, current_brightness, (current_brightness * 100) / 255);
+        if (current_brightness != last_brightness_set) {
+            Serial.printf("*** Brightness changed from %d to %d ***\n", last_brightness_set, current_brightness);
+            last_brightness_set = current_brightness;
+        }
         last_brightness_print = millis();
     }
 }
@@ -200,8 +223,8 @@ void updateRealLDRData() {
     // Read actual LDR value from pin 4
     int ldr_raw = analogRead(4);
     
-    // LDR smoothing with 3-second rolling average
-    static int ldr_readings[30] = {0}; // Store 30 readings (3 seconds at ~100ms intervals)
+    // Advanced LDR smoothing with 10-second rolling average (100 samples at ~100ms intervals)
+    static int ldr_readings[100] = {0}; // Store 100 readings (10 seconds at ~100ms intervals)
     static int reading_index = 0;
     static bool buffer_filled = false;
     static unsigned long last_reading_time = 0;
@@ -209,27 +232,27 @@ void updateRealLDRData() {
     // Only take new readings every ~100ms for smoothing
     if (millis() - last_reading_time >= 100) {
         ldr_readings[reading_index] = ldr_raw;
-        reading_index = (reading_index + 1) % 30;
+        reading_index = (reading_index + 1) % 100;
         if (reading_index == 0) buffer_filled = true;
         last_reading_time = millis();
     }
     
-    // Calculate smoothed LDR value
+    // Calculate smoothed LDR value using rolling average
     int ldr_smoothed;
     if (buffer_filled) {
-        // Use all 30 readings for average
+        // Use all 100 readings for average
         long sum = 0;
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < 100; i++) {
             sum += ldr_readings[i];
         }
-        ldr_smoothed = sum / 30;
+        ldr_smoothed = sum / 100;
     } else {
         // Use available readings
         long sum = 0;
         for (int i = 0; i < reading_index; i++) {
             sum += ldr_readings[i];
         }
-        ldr_smoothed = sum / reading_index;
+        ldr_smoothed = (reading_index > 0) ? (sum / reading_index) : ldr_raw;
     }
     
     // Update the display with smoothed LDR reading
@@ -243,14 +266,12 @@ void updateRealLDRData() {
     // Update brightness based on smoothed LDR reading
     updateBrightness(ldr_smoothed);
     
-    // Enhanced debugging output
+    // Enhanced debugging output with LDR serial printing
     static unsigned long last_print = 0;
     static int last_ldr_value = -1;
     
-    if (millis() - last_print > 1000) { // Print every second
-        Serial.printf("LDR Raw: %d, Smoothed: %d (Pin 4)\n", ldr_raw, ldr_smoothed);
-        Serial.printf("Display label updated: %s\n", lv_label_get_text(ldr_label));
-        Serial.printf("LVGL task handler called\n");
+    if (millis() - last_print > 500) { // Print every 500ms for more frequent LDR output
+        Serial.printf("LDR (Pin 4) - Raw: %d, Smoothed: %d\n", ldr_raw, ldr_smoothed);
         
         // Check if smoothed value actually changed
         if (ldr_smoothed != last_ldr_value) {
@@ -278,10 +299,12 @@ void setup() {
     tft.fillScreen(TFT_BLACK);
     Serial.println("TFT initialized");
     
-    // Initialize backlight PWM
-    pinMode(25, OUTPUT);
-    analogWrite(25, 128); // Start at 50% brightness
-    Serial.println("Backlight initialized");
+    // Initialize backlight PWM using ESP32 LEDC
+    // Higher frequency (25kHz) reduces visible flicker
+    ledcSetup(0, 25000, 8); // Channel 0, 25kHz frequency, 8-bit resolution
+    ledcAttachPin(25, 0);   // Attach pin 25 to channel 0
+    ledcWrite(0, 128);       // Start at 50% brightness (will be adjusted by LDR)
+    Serial.println("Backlight initialized (PWM on pin 25, LEDC channel 0, 25kHz, min 10%)");
     
     // Initialize LVGL
     Serial.println("Initializing LVGL...");
@@ -404,7 +427,7 @@ void setup() {
     char ldr_init_text[30];
     sprintf(ldr_init_text, "LDR: %d", initial_ldr);
     lv_label_set_text(ldr_label, ldr_init_text);
-    Serial.printf("Initial LDR reading: %d\n", initial_ldr);
+    Serial.printf("Initial LDR reading (Pin 4): %d\n", initial_ldr);
     
     // Initialize brightness control
     updateBrightness(initial_ldr);

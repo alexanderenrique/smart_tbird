@@ -35,7 +35,7 @@ const lv_color_t TEXT_COLOR = lv_color_hex(0xFFFFFF);        // White text
 
 // Font size variables
 const lv_font_t* TITLE_FONT = &lv_font_montserrat_24;        // Main title font (larger)
-const lv_font_t* TEXT_FONT = &lv_font_montserrat_30;         // Regular text font (larger)
+const lv_font_t* LARGE_FONT = &lv_font_montserrat_38;        // Large font for voltage, AFR, LDR, and brightness
 
 void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p) {
     uint32_t w = (area->x2 - area->x1 + 1);
@@ -152,7 +152,7 @@ void updateRealOxygenSensorData() {
     
     // During warmup period, display warming message
     if (elapsed_time < O2_WARMUP_TIME) {
-        lv_label_set_text(afr_label, "O2 sensor warming");
+        lv_label_set_text(afr_label, "O2 warming");
         lv_obj_invalidate(afr_label);
         return; // Don't read sensor during warmup
     }
@@ -253,7 +253,7 @@ void updateBrightness(int ldr_value) {
     
     // Update brightness display
     char brightness_text[30];
-    sprintf(brightness_text, "Brightness: %d%%", (current_brightness * 100) / 255);
+    sprintf(brightness_text, "Brt: %d%%", (current_brightness * 100) / 255);
     lv_label_set_text(brightness_label, brightness_text);
     
     // Force refresh of this label
@@ -421,32 +421,33 @@ void setup() {
     lv_obj_set_style_text_color(title, TEXT_COLOR, LV_PART_MAIN);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 10);
     
-    // Voltage Section
+    // Voltage Section - Left aligned and large font
     voltage_label = lv_label_create(scr);
     lv_label_set_text(voltage_label, "Voltage: Initializing...");
-    lv_obj_set_style_text_font(voltage_label, TEXT_FONT, LV_PART_MAIN);
+    lv_obj_set_style_text_font(voltage_label, LARGE_FONT, LV_PART_MAIN);
     lv_obj_set_style_text_color(voltage_label, TEXT_COLOR, LV_PART_MAIN);
-    lv_obj_align(voltage_label, LV_ALIGN_TOP_LEFT, 20, 270);
+    lv_obj_align(voltage_label, LV_ALIGN_TOP_LEFT, 20, 60);
     
-    // Oxygen Sensor (AFR) Section
+    // Oxygen Sensor (AFR) Section - Left aligned and large font
     afr_label = lv_label_create(scr);
     lv_label_set_text(afr_label, "AFR: Initializing...");
-    lv_obj_set_style_text_font(afr_label, TEXT_FONT, LV_PART_MAIN);
+    lv_obj_set_style_text_font(afr_label, LARGE_FONT, LV_PART_MAIN);
     lv_obj_set_style_text_color(afr_label, TEXT_COLOR, LV_PART_MAIN);
-    lv_obj_align(afr_label, LV_ALIGN_TOP_LEFT, 20, 310);
+    lv_obj_align(afr_label, LV_ALIGN_TOP_LEFT, 20, 110);
     
-    // LDR Section    
+    // LDR Section - Left aligned and large font
     ldr_label = lv_label_create(scr);
     lv_label_set_text(ldr_label, "LDR: Initializing...");
-    lv_obj_set_style_text_font(ldr_label, TEXT_FONT, LV_PART_MAIN);
+    lv_obj_set_style_text_font(ldr_label, LARGE_FONT, LV_PART_MAIN);
     lv_obj_set_style_text_color(ldr_label, TEXT_COLOR, LV_PART_MAIN);
-    lv_obj_align(ldr_label, LV_ALIGN_TOP_LEFT, 20, 350);
+    lv_obj_align(ldr_label, LV_ALIGN_TOP_LEFT, 20, 160);
     
+    // Brightness Section - Left aligned and large font
     brightness_label = lv_label_create(scr);
-    lv_label_set_text(brightness_label, "Brightness: Initializing...");
-    lv_obj_set_style_text_font(brightness_label, TEXT_FONT, LV_PART_MAIN);
+    lv_label_set_text(brightness_label, "Brt: Initializing...");
+    lv_obj_set_style_text_font(brightness_label, LARGE_FONT, LV_PART_MAIN);
     lv_obj_set_style_text_color(brightness_label, TEXT_COLOR, LV_PART_MAIN);
-    lv_obj_align(brightness_label, LV_ALIGN_TOP_LEFT, 20, 390);
+    lv_obj_align(brightness_label, LV_ALIGN_TOP_LEFT, 20, 210);
     
     // Test LDR reading immediately after setup
     int initial_ldr = analogRead(4);

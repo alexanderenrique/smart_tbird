@@ -6,6 +6,8 @@
 #include <driver/gpio.h>
 #include <driver/adc.h>
 #include <esp_adc_cal.h>
+#include "ModbusClientRTU.h"
+#include "RTUutils.h"
 
 
 // TFT Display
@@ -22,8 +24,27 @@ static lv_indev_drv_t indev_drv;
 // UI Elements
 lv_obj_t *voltage_label;
 lv_obj_t *afr_label;
-lv_obj_t *ldr_label;
 lv_obj_t *brightness_label;
+lv_obj_t *coolant_temp_label;
+lv_obj_t *oil_temp_label;
+lv_obj_t *trans_temp_label;
+
+// Modbus Configuration
+#define RX_PIN 16  // RS-485 RX pin (adjust to your wiring)
+#define TX_PIN 17  // RS-485 TX pin (adjust to your wiring)
+#define DE_RE_PIN 26      // RS-485 DE/RE control pin (if using MAX485)
+#define COOLANT_TEMP_ADDRESS 0
+#define OIL_TEMP_ADDRESS 1
+#define TRANS_TEMP_ADDRESS 2
+#define MODBUS_BAUD_RATE 9600
+#define SLAVE_ID 1  // Modbus server/slave ID 
+
+HardwareSerial RS485(2);
+ModbusClientRTU MBclient;
+
+// Modbus data storage
+static uint16_t modbus_regs[3] = {0, 0, 0};  // Store coolant, oil, trans temps
+static bool modbus_data_valid = false;
 
 // ADC Calibration
 esp_adc_cal_characteristics_t adc1_chars;
@@ -62,7 +83,7 @@ void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data) {
     }
 }
 
-void updateRealVoltageData() {
+void updateVoltageData() {
     // Safety check
     if (!voltage_label) return;
     
@@ -140,7 +161,7 @@ void updateRealVoltageData() {
     }
 }
 
-void updateRealOxygenSensorData() {
+void updateO2SensorData() {
     // Safety check
     if (!afr_label) return;
     
@@ -212,13 +233,9 @@ void updateRealOxygenSensorData() {
     
 }
 
-void updateBrightness(int ldr_value) {
+void updateBrightnessData(int ldr_value) {
     // Safety check
     if (!brightness_label) return;
-    
-    // Advanced brightness calculation with gamma correction
-    // LDR 200-2000 → PWM 51-255 (20%-100%)
-    // LDR <= 200 → 20% PWM, LDR >= 2000 → 100% PWM
     
     // Clamp LDR value to 200-2000 range
     if (ldr_value < 200) ldr_value = 200;
@@ -227,9 +244,8 @@ void updateBrightness(int ldr_value) {
     // Normalize LDR to 0.0-1.0 range (200-2000 → 0.0-1.0)
     float normalized = ((float)ldr_value - 200.0f) / (2000.0f - 200.0f);
     
-    // Apply gamma correction (2.2) for better human perception
     // This makes the brightness curve more perceptually linear
-    float gamma_corrected = pow(normalized, 1.0f / 2.2f);
+    float gamma_corrected = normalized*normalized;
     
     // Convert to PWM value (51-255, where 51 = 20% minimum)
     const int min_brightness = 51; // 20% of 255
@@ -246,7 +262,7 @@ void updateBrightness(int ldr_value) {
     
     // Ensure we're within valid range (20%-100%)
     if (current_brightness < min_brightness) current_brightness = min_brightness;
-    if (current_brightness > 255) current_brightness = 255;
+    if (current_brightness > max_brightness) current_brightness = max_brightness;
     
     // Set PWM brightness on pin 25 using LEDC
     ledcWrite(0, current_brightness);
@@ -259,12 +275,9 @@ void updateBrightness(int ldr_value) {
     // Force refresh of this label
     lv_obj_invalidate(brightness_label);
     
-    // Note: Serial output moved to updateRealLDRData() to combine with LDR values
 }
 
-void updateRealLDRData() {
-    // Safety check
-    if (!ldr_label) return;
+void updateLDRData() {
     
     // Read actual LDR value from pin 4
     int ldr_raw = analogRead(4);
@@ -301,43 +314,105 @@ void updateRealLDRData() {
         ldr_smoothed = (reading_index > 0) ? (sum / reading_index) : ldr_raw;
     }
     
-    // Update the display with smoothed LDR reading
-    char ldr_text[30];
-    sprintf(ldr_text, "LDR: %d", ldr_raw);
-    lv_label_set_text(ldr_label, ldr_text);
-    
-    // Force refresh of this label
-    lv_obj_invalidate(ldr_label);
-    
     // Update brightness based on smoothed LDR reading
-    updateBrightness(ldr_smoothed);
+    updateBrightnessData(ldr_smoothed);
+}
+
+// Modbus callback function to handle data responses
+void handleModbusData(ModbusMessage response, uint32_t token) {
+    // Extract register values from response
+    // Response format for Read Holding Registers (0x03):
+    // [ServerID][FunctionCode][ByteCount][Register0_High][Register0_Low][Register1_High][Register1_Low][Register2_High][Register2_Low]
     
-    // Serial output: LDR and Brightness every second
-    static unsigned long last_print = 0;
-    if (millis() - last_print > 1000) { // Print every second
-        // Calculate brightness percentage from smoothed LDR value
-        int brightness_pct = 0;
-        // Use same calculation as updateBrightness() to get current brightness
-        int clamped_ldr = ldr_smoothed;
-        if (clamped_ldr < 200) clamped_ldr = 200;
-        if (clamped_ldr > 2000) clamped_ldr = 2000;
+    if (response.getFunctionCode() == READ_HOLD_REGISTER && response.size() >= 9) {
+        uint8_t byteCount = response[2];
         
-        float normalized = ((float)clamped_ldr - 200.0f) / (2000.0f - 200.0f);
-        float gamma_corrected = pow(normalized, 1.0f / 2.2f);
-        const int min_brightness = 51; // 20% of 255
-        const int max_brightness = 255; // 100%
-        int target_brightness = min_brightness + (int)(gamma_corrected * (max_brightness - min_brightness));
-        brightness_pct = (target_brightness * 100) / 255;
-        
-        Serial.printf("LDR: %d (smoothed: %d), Brightness: %d%%\n", 
-                     ldr_raw, ldr_smoothed, brightness_pct);
-        last_print = millis();
+        if (byteCount >= 6) {  // 3 registers = 6 bytes
+            // Extract 16-bit register values (big-endian Modbus format)
+            modbus_regs[0] = (response[3] << 8) | response[4];  // Coolant temp
+            modbus_regs[1] = (response[5] << 8) | response[6];  // Oil temp
+            modbus_regs[2] = (response[7] << 8) | response[8]; // Trans temp
+            modbus_data_valid = true;
+        }
     }
 }
 
+// Modbus callback function to handle errors
+void handleModbusError(Error error, uint32_t token) {
+    Serial.printf("Modbus error: %02X\n", error);
+    modbus_data_valid = false;
+}
+
+void updateModbusData() {
+    // Safety checks
+    if (!coolant_temp_label || !oil_temp_label || !trans_temp_label) return;
+
+    // Only update display if we have valid data
+    if (modbus_data_valid) {
+        // Convert from tenths of a degree to actual temperature
+        // (e.g., 185 = 18.5°F)
+        float coolant_temp = modbus_regs[0] / 10.0f;
+        float oil_temp = modbus_regs[1] / 10.0f;
+        float trans_temp = modbus_regs[2] / 10.0f;
+
+        // Update the display with the data
+        char coolant_text[30];
+        sprintf(coolant_text, "Coolant: %.1f°F", coolant_temp);
+        lv_label_set_text(coolant_temp_label, coolant_text);
+        lv_obj_invalidate(coolant_temp_label);
+
+        char oil_text[30];
+        sprintf(oil_text, "Oil: %.1f°F", oil_temp);
+        lv_label_set_text(oil_temp_label, oil_text);
+        lv_obj_invalidate(oil_temp_label);
+
+        char trans_text[30];
+        sprintf(trans_text, "Trans: %.1f°F", trans_temp);
+        lv_label_set_text(trans_temp_label, trans_text);
+        lv_obj_invalidate(trans_temp_label);
+    } else {
+        // Show "No data" if we don't have valid readings
+        lv_label_set_text(coolant_temp_label, "Coolant: --");
+        lv_label_set_text(oil_temp_label, "Oil: --");
+        lv_label_set_text(trans_temp_label, "Trans: --");
+    }
+    
+    // Send Modbus request periodically (every 500ms)
+    static unsigned long last_request = 0;
+    static uint32_t request_token = 1;
+    
+    if (millis() - last_request >= 500) {
+        // Send request to read holding registers
+        // Server ID 1, starting at address 0, reading 3 registers
+        Error err = MBclient.addRequest(request_token++, SLAVE_ID, READ_HOLD_REGISTER, 
+                                        COOLANT_TEMP_ADDRESS, 3);
+        if (err != SUCCESS) {
+            Serial.printf("Failed to add Modbus request: %02X\n", err);
+        }
+        last_request = millis();
+    }
+}
 
 void setup() {
     Serial.begin(9600);
+
+    // Prepare hardware serial for Modbus RTU
+    RTUutils::prepareHardwareSerial(RS485);
+    
+    // Initialize RS485 serial port
+    RS485.begin(MODBUS_BAUD_RATE, SERIAL_8N1, RX_PIN, TX_PIN);
+    
+    // Configure RS485 direction pin
+    pinMode(DE_RE_PIN, OUTPUT);
+    digitalWrite(DE_RE_PIN, LOW); // start in receive mode
+
+    // Initialize Modbus RTU client
+    MBclient.begin(RS485, DE_RE_PIN);  // Serial, DE/RE pin
+    MBclient.setTimeout(2000);  // 2 second timeout
+    
+    // Register callback handlers
+    MBclient.onDataHandler(&handleModbusData);
+    MBclient.onErrorHandler(&handleModbusError);
     
     // Initialize TFT
     tft.init();
@@ -423,49 +498,56 @@ void setup() {
     
     // Voltage Section - Left aligned and large font
     voltage_label = lv_label_create(scr);
-    lv_label_set_text(voltage_label, "Voltage: Initializing...");
     lv_obj_set_style_text_font(voltage_label, LARGE_FONT, LV_PART_MAIN);
     lv_obj_set_style_text_color(voltage_label, TEXT_COLOR, LV_PART_MAIN);
     lv_obj_align(voltage_label, LV_ALIGN_TOP_LEFT, 20, 60);
     
     // Oxygen Sensor (AFR) Section - Left aligned and large font
     afr_label = lv_label_create(scr);
-    lv_label_set_text(afr_label, "AFR: Initializing...");
     lv_obj_set_style_text_font(afr_label, LARGE_FONT, LV_PART_MAIN);
     lv_obj_set_style_text_color(afr_label, TEXT_COLOR, LV_PART_MAIN);
     lv_obj_align(afr_label, LV_ALIGN_TOP_LEFT, 20, 110);
-    
-    // LDR Section - Left aligned and large font
-    ldr_label = lv_label_create(scr);
-    lv_label_set_text(ldr_label, "LDR: Initializing...");
-    lv_obj_set_style_text_font(ldr_label, LARGE_FONT, LV_PART_MAIN);
-    lv_obj_set_style_text_color(ldr_label, TEXT_COLOR, LV_PART_MAIN);
-    lv_obj_align(ldr_label, LV_ALIGN_TOP_LEFT, 20, 160);
+
+    // Coolant Temp section
+    coolant_temp_label = lv_label_create(scr);
+    lv_obj_set_style_text_font(coolant_temp_label, LARGE_FONT, LV_PART_MAIN);
+    lv_obj_set_style_text_color(coolant_temp_label, TEXT_COLOR, LV_PART_MAIN);
+    lv_obj_align(coolant_temp_label, LV_ALIGN_TOP_LEFT, 20, 160);
+
+    // Oil Temp section
+    oil_temp_label = lv_label_create(scr);
+    lv_obj_set_style_text_font(oil_temp_label, LARGE_FONT, LV_PART_MAIN);
+    lv_obj_set_style_text_color(oil_temp_label, TEXT_COLOR, LV_PART_MAIN);
+    lv_obj_align(oil_temp_label, LV_ALIGN_TOP_LEFT, 20, 210);
+
+            // Trans Temp section
+    trans_temp_label = lv_label_create(scr);
+    lv_obj_set_style_text_font(trans_temp_label, LARGE_FONT, LV_PART_MAIN);
+    lv_obj_set_style_text_color(trans_temp_label, TEXT_COLOR, LV_PART_MAIN);
+    lv_obj_align(trans_temp_label, LV_ALIGN_TOP_LEFT, 20, 260);
     
     // Brightness Section - Left aligned and large font
     brightness_label = lv_label_create(scr);
-    lv_label_set_text(brightness_label, "Brt: Initializing...");
-    lv_obj_set_style_text_font(brightness_label, LARGE_FONT, LV_PART_MAIN);
+    lv_label_set_text(brightness_label, "Brt: --%");  // Initialize with placeholder text
+    lv_obj_set_style_text_font(brightness_label, TITLE_FONT, LV_PART_MAIN);
     lv_obj_set_style_text_color(brightness_label, TEXT_COLOR, LV_PART_MAIN);
-    lv_obj_align(brightness_label, LV_ALIGN_TOP_LEFT, 20, 210);
-    
-    // Test LDR reading immediately after setup
-    int initial_ldr = analogRead(4);
-    char ldr_init_text[30];
-    sprintf(ldr_init_text, "LDR: %d", initial_ldr);
-    lv_label_set_text(ldr_label, ldr_init_text);
-    
-    // Initialize brightness control
-    updateBrightness(initial_ldr);
+    lv_obj_align(brightness_label, LV_ALIGN_TOP_LEFT, 20, 440);
+
+
+
+
+
+
 }
 
 void loop() {
     // Update sensor data with timing control
     static unsigned long last_update = 0;
     if (millis() - last_update >= 100) { // Update every 100ms instead of every 5ms
-        updateRealVoltageData();
-        updateRealOxygenSensorData();
-        updateRealLDRData();
+        updateVoltageData();
+        updateO2SensorData();
+        updateLDRData();  // Update LDR and brightness
+        updateModbusData();
         last_update = millis();
     }
     

@@ -20,7 +20,7 @@ static const int COOLANT_TABLE_SIZE =
     sizeof(coolantTable) / sizeof(coolantTable[0]);
 
 // Linear interpolation function
-static float CoolantTemp_fromADC(uint16_t adc)
+static float Calc_Temp_fromADC(uint16_t adc)
 {
     // Clamp endpoints
     if (adc <= coolantTable[0].adc) return coolantTable[0].tempC;

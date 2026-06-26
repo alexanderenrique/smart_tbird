@@ -24,3 +24,9 @@ compile_commands.json
 *.kicad_prl
 fp-info-cache
 *-cache
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.egg-info/

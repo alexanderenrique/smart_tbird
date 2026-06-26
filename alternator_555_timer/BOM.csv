@@ -1,0 +1,16 @@
+Reference,Qty,Value,Footprint,Description
+"C1,C3,C4",3,0.1uF,Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder,"Pulls Trig to ground momenterily,Smoothing Capacitor,Smoothing capacitor"
+C2,1,47uF,Capacitor_THT:CP_Radial_D8.0mm_P3.80mm,Electrolytic capcitor for RC timing circuit
+"D1,D2",2,SZ1SMB15AT3G,Diode_SMD:D_SMB_Handsoldering,"Gate/Drain TVS protection,Supply voltage TVS"
+D3,1,Green LED,LED_THT:LED_D3.0mm_Clear,Light emitting diode
+D4,1,Red LED,LED_THT:LED_D3.0mm_Clear,Light emitting diode
+F1,1,Fuse_Small,Fuse:Fuseholder_Blade_Mini_Keystone_3568,"Fuse, 10A"
+J1,1,I_In,Connector_Pin:12_AWG_TH_Alex,Wire Mounting hole
+J2,1,I_out,Connector_Pin:12_AWG_TH_Alex,"Generic connector, single row, 01x01, script generated"
+J3,1,GND_Conn,Connector_Pin:12_AWG_TH_Alex,Chassis and circuit ground
+Q1,1,FQD11P06TM,Package_TO_SOT_SMD:TO-252-2,"-27A Id, -60V Vds, QFET P-Channel MOSFET, TO-220"
+R1,1,220k,Resistor_SMD:R_1206_3216Metric_Pad1.30x1.75mm_HandSolder,Resistor for RC timing circuit
+R2,1,100,Resistor_SMD:R_1206_3216Metric_Pad1.30x1.75mm_HandSolder,Resistor to minimize line ringing
+R3,1,10k,Resistor_SMD:R_1206_3216Metric_Pad1.30x1.75mm_HandSolder,Raises trig up after initial start
+R4,1,100k,Resistor_SMD:R_1206_3216Metric_Pad1.30x1.75mm_HandSolder,MOSFET pull-down resistor
+U1,1,TLC555CP,Package_DIP:DIP-8_W7.62mm,"CMOS 555 compatible, PDIP-8"

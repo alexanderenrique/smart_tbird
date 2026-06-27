@@ -4,7 +4,8 @@
 
 A small analog delay board for classic cars with upgraded alternators. A CMOS 555 monostable holds the alternator field (I wire) off for ~10 seconds after key-on so V-belts can spin up before the load hits — no MCU, no firmware.
 
-**Project page:** [denton.works/projects/alternator-555-timer](https://denton.works/projects/alternator-555-timer/)
+**Project page:** [denton.works/projects/alternator-555-timer](https://denton.works/projects/alternator-555-timer/)  
+**Repository:** [github.com/alexanderenrique/smart_tbird](https://github.com/alexanderenrique/smart_tbird/tree/platformIO/alternator_555_timer)
 
 ## What's here
 

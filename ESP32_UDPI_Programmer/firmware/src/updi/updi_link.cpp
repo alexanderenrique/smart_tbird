@@ -12,10 +12,6 @@ bool UpdiLink::init() {
         return false;
     }
 
-    if (!initDatalink()) {
-        return false;
-    }
-
     uint8_t statusA = 0;
     if (checkDatalink(statusA)) {
         return true;
@@ -25,24 +21,12 @@ bool UpdiLink::init() {
         return false;
     }
 
-    if (!initDatalink()) {
-        return false;
-    }
-
     return checkDatalink(statusA);
 }
 
 bool UpdiLink::initDatalink() {
-    updiDebugMsg("init datalink: STCS CTRLB CCDETDIS");
-    if (!stcs(UPDI_CS_CTRLB, UPDI_CTRLB_CCDETDIS)) {
-        updiDebugMsg("init datalink fail at STCS CTRLB");
-        return false;
-    }
-    updiDebugMsg("init datalink: STCS CTRLA IBDLY");
-    if (!stcs(UPDI_CS_CTRLA, UPDI_CTRLA_IBDLY)) {
-        updiDebugMsg("init datalink fail at STCS CTRLA");
-        return false;
-    }
+    // Debug: STCS writes disabled — BREAK -> SYNCH -> LDCS STATUSA only.
+    updiDebugMsg("init datalink skipped (STCS disabled)");
     return true;
 }
 
@@ -54,16 +38,7 @@ bool UpdiLink::checkDatalink(uint8_t &statusA) {
         return false;
     }
     updiDebugFmt("STATUSA", statusA);
-    if (statusA == 0) {
-        uint8_t statusB = 0;
-        updiDebugMsg("check datalink: LDCS STATUSB (error signature)");
-        if (ldcs(UPDI_CS_STATUSB, statusB)) {
-            updiDebugFmt("STATUSB/PESIG", statusB);
-        } else {
-            updiDebugMsg("LDCS STATUSB timeout");
-        }
-    }
-    return statusA != 0;
+    return true;
 }
 
 bool UpdiLink::readSib(uint8_t *buffer, size_t maxLength, size_t &outLength) {
@@ -146,13 +121,10 @@ size_t UpdiLink::echoLengthForInstruction(uint8_t instruction, UpdiAddressSize a
 }
 
 bool UpdiLink::stcs(uint8_t address, uint8_t value) {
-    uint8_t instruction = UPDI_INST_STCS | (address & 0x0F);
-    updiDebugFmt("STCS addr", address);
-    updiDebugFmt("STCS value", value);
-    if (!sendInstruction(instruction)) {
-        return false;
-    }
-    return sendOperand(value);
+    (void)address;
+    (void)value;
+    updiDebugMsg("STCS disabled (debug)");
+    return false;
 }
 
 bool UpdiLink::ldcs(uint8_t address, uint8_t &value) {

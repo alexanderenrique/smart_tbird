@@ -2,6 +2,9 @@
 
 Toolchain-agnostic ATtiny programming over USB: a Python CLI streams Intel HEX firmware to an ESP32, which executes UPDI flash operations on the target (ATtiny3216 by default).
 
+**Work log:** [denton.works/microelectronics/ESP32_UPDI_Programmer](https://denton.works/microelectronics/ESP32_UPDI_Programmer/)  
+**Repository:** [github.com/alexanderenrique/smart_tbird](https://github.com/alexanderenrique/smart_tbird/tree/platformIO/ESP32_UDPI_Programmer)
+
 ```
 [ Any Build System ] --> firmware.hex --> attiny-uploader (CLI) --USB Serial--> ESP32 --UPDI--> ATtiny3216
 ```

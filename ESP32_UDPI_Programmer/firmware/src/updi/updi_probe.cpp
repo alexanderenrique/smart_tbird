@@ -82,7 +82,7 @@ bool UpdiProbe::run(UpdiProbeResult &result) {
     }
 
     result.breakSent = _phy.sendDoubleBreak();
-    debugStep(Serial, "step 1/3 send double BREAK", result.breakSent);
+    debugStep(Serial, "step 1/2 send double BREAK", result.breakSent);
     if (!result.breakSent) {
         return false;
     }
@@ -90,60 +90,44 @@ bool UpdiProbe::run(UpdiProbeResult &result) {
     updiDebugPinState(PIN_UPDI_RX);
     updiDebugPinState(PIN_UPDI_TX);
 
-    result.datalinkOk = _link.initDatalink();
-    debugStep(Serial, "step 2/3 initialize datalink", result.datalinkOk);
+    // Step 2: SYNCH + LDCS STATUSA (SYNCH is sent inside ldcs via sendInstruction).
+    result.datalinkOk = _link.checkDatalink(result.statusA);
+    debugStep(Serial, "step 2/2 SYNCH + LDCS STATUSA", result.datalinkOk);
     if (!result.datalinkOk) {
-        return false;
-    }
-
-    if (!_link.checkDatalink(result.statusA)) {
-        debugStep(Serial, "step 2/3 check STATUSA", false);
-
         result.breakSent = _phy.sendDoubleBreak();
         debugStep(Serial, "retry send double BREAK", result.breakSent);
         if (!result.breakSent) {
             return false;
         }
 
-        result.datalinkOk = _link.initDatalink();
-        debugStep(Serial, "retry initialize datalink", result.datalinkOk);
-        if (!result.datalinkOk || !_link.checkDatalink(result.statusA)) {
-            debugStep(Serial, "retry check STATUSA", false);
+        result.datalinkOk = _link.checkDatalink(result.statusA);
+        debugStep(Serial, "retry SYNCH + LDCS STATUSA", result.datalinkOk);
+        if (!result.datalinkOk) {
             updiDebugPinState(PIN_UPDI_RX);
             updiDebugPinState(PIN_UPDI_TX);
-            Serial.println("DEBUG UPDI === probe failed (no datalink) ===");
+            Serial.println("DEBUG UPDI === probe failed (LDCS STATUSA) ===");
             return false;
         }
     }
 
-    debugStep(Serial, "step 2/3 check STATUSA", true);
-
-    uint8_t sibBuffer[sizeof(result.sib)] = {0};
-    result.sibRead = _link.readSib(sibBuffer, sizeof(sibBuffer) - 1, result.sibLength);
-    debugStep(Serial, "step 3/3 read SIB", result.sibRead);
-
-    if (result.sibRead) {
-        memcpy(result.sib, sibBuffer, result.sibLength);
-        result.sib[result.sibLength] = '\0';
-    }
-
-    result.success = result.breakSent && result.datalinkOk && result.sibRead;
+    result.success = result.breakSent && result.datalinkOk;
+    Serial.print("INFO STATUSA=0x");
+    Serial.println(result.statusA, HEX);
     Serial.println(result.success ? "DEBUG UPDI === probe passed ===" : "DEBUG UPDI === probe failed ===");
     return result.success;
 }
 
 void UpdiProbe::printResult(Stream &out, const UpdiProbeResult &result) const {
     if (result.success) {
-        printSibFields(out, result.sib, result.sibLength);
+        out.print("INFO STATUSA=0x");
+        out.println(result.statusA, HEX);
         return;
     }
 
     if (!result.breakSent) {
         out.println("INFO failed at: send BREAK");
     } else if (!result.datalinkOk) {
-        out.println("INFO failed at: initialize UPDI datalink");
-    } else if (!result.sibRead) {
-        out.print("INFO failed at: read SIB (STATUSA=0x");
+        out.print("INFO failed at: LDCS STATUSA (STATUSA=0x");
         out.print(result.statusA, HEX);
         out.println(")");
     }

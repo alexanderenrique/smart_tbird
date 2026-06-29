@@ -1834,16 +1834,16 @@
 		(uuid "16ed9ea2-f689-4109-8834-22888f7e9311")
 	)
 	(junction
+		(at 182.88 93.98)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "1a70b642-864a-4225-ac01-97ad8716c757")
+	)
+	(junction
 		(at 168.91 93.98)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "26183bd3-7501-4ae9-b827-414ee9da7af6")
-	)
-	(junction
-		(at 182.88 93.98)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "59885adb-e8b4-43e3-ac3a-1621b0be0a63")
 	)
 	(junction
 		(at 128.27 55.88)
@@ -3127,7 +3127,7 @@
 				)
 			)
 		)
-		(property "Value" "Red LED"
+		(property "Value" "R. LED"
 			(at 195.8975 113.03 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3306,7 +3306,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Connector_Pin:12_AWG_TH_Alex"
+		(property "Footprint" "Connector:Alex_1pin_065thou"
 			(at 71.12 78.74 0)
 			(hide yes)
 			(show_name no)
@@ -3611,7 +3611,7 @@
 				)
 			)
 		)
-		(property "Value" "Green LED"
+		(property "Value" "G. LED"
 			(at 195.8975 66.04 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3959,7 +3959,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Connector_Pin:12_AWG_TH_Alex"
+		(property "Footprint" "Connector:Alex_1pin_065thou"
 			(at 130.81 113.03 0)
 			(hide yes)
 			(show_name no)
@@ -4184,6 +4184,7 @@
 	(symbol
 		(lib_id "Transistor_FET:FQP27P06")
 		(at 187.96 93.98 0)
+		(mirror x)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -4191,7 +4192,6 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(uuid "c9a30c04-771e-45a6-8f08-56750bcf38f0")
 		(property "Reference" "Q1"
 			(at 194.31 92.7099 0)
@@ -4216,7 +4216,7 @@
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:TO-252-2"
-			(at 193.04 95.885 0)
+			(at 193.04 92.075 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4229,7 +4229,7 @@
 			)
 		)
 		(property "Datasheet" "https://www.onsemi.com/pub/Collateral/FQP27P06-D.PDF"
-			(at 193.04 97.79 0)
+			(at 193.04 90.17 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4626,7 +4626,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Connector_Pin:12_AWG_TH_Alex"
+		(property "Footprint" "Connector:Alex_1pin_065thou"
 			(at 195.58 104.14 0)
 			(hide yes)
 			(show_name no)

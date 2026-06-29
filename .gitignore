@@ -18,12 +18,17 @@ compile_commands.json
 
 # KiCad
 .history/
-*-backups/
+*-backups*/
 *.lck
 ~*
 *.kicad_prl
 fp-info-cache
 *-cache
+
+# PCB fab outputs (regenerate from KiCad; do not commit)
+*.gbr
+*.drl
+*.gbrjob
 
 # Python
 venv/

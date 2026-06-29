@@ -33,20 +33,20 @@ static const uint32_t UPDI_BAUD = 115200;
 // Verbose hex-level UPDI logging on USB serial.
 static const bool UPDI_DEBUG = true;
 
-// BREAK: GPIO low pulse on open-drain TX (~12+ bit times @ 115200).
-static const uint32_t UPDI_BREAK_LOW_US = 200;
+// BREAK via low-baud 0x00 frame (pymcuprog serialupdi): holds line low ~30 ms (>24.6 ms spec).
+static const uint32_t UPDI_BREAK_BAUD = 300;
 
-// Idle-high gap between BREAK pulses when UPDI_USE_DOUBLE_BREAK is true (µs, not ms).
-static const uint32_t UPDI_BREAK_GAP_US = 500;
+// Idle gap between double-BREAK frames (ms; pymcuprog uses 100 ms).
+static const uint32_t UPDI_BREAK_GAP_MS = 100;
 
-// Single BREAK is enough for scope bring-up; enable double-BREAK for spec-compliant recovery.
-static const bool UPDI_USE_DOUBLE_BREAK = false;
+// Two BREAK frames reset UPDI reliably (Microchip spec + pymcuprog/jtag2updi).
+static const bool UPDI_USE_DOUBLE_BREAK = true;
 
-// Minimal boot probe: BREAK -> 0x55 burst -> LDCS STATUSA (skip STCS init).
-static const bool UPDI_SIMPLE_PROBE = true;
+// Full probe: BREAK -> SYNCH -> init datalink (STCS) -> LDCS STATUSA.
+static const bool UPDI_SIMPLE_PROBE = false;
 
-// 0x55 frames sent after BREAK so the scope matches uart_tx_0x55.
-static const uint16_t UPDI_PROBE_SYNCH_COUNT = 32;
+// One SYNCH (0x55) before the first instruction after BREAK.
+static const uint16_t UPDI_PROBE_SYNCH_COUNT = 1;
 
 // RX timeout for UPDI response bytes (ms).
 static const uint32_t UPDI_RX_TIMEOUT_MS = 300;

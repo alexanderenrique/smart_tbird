@@ -102,7 +102,7 @@ bool UpdiProbe::run(UpdiProbeResult &result) {
     updiDebugPinState(PIN_UPDI_TX);
 
     result.datalinkOk = _phy.sendSynchBurst(UPDI_PROBE_SYNCH_COUNT);
-    debugStep(Serial, "step 2 stream 0x55 burst", result.datalinkOk);
+    debugStep(Serial, "step 2 SYNCH", result.datalinkOk);
     if (!result.datalinkOk) {
         return false;
     }
@@ -125,7 +125,7 @@ bool UpdiProbe::run(UpdiProbeResult &result) {
         }
 
         if (!_phy.sendSynchBurst(UPDI_PROBE_SYNCH_COUNT)) {
-            debugStep(Serial, "retry 0x55 burst", false);
+            debugStep(Serial, "retry SYNCH", false);
             return false;
         }
 

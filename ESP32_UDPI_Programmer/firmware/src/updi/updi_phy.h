@@ -17,10 +17,8 @@ public:
     bool sendSynchBurst(uint16_t count);
     size_t flushEcho(size_t expectedEchoBytes);
 
-    // GPIO low pulse on TX, then restore 115200 8E2 UART (open-drain).
+    // Low-baud 0x00 BREAK frame(s), then restore 115200 8E2 UART (open-drain).
     bool sendBreak();
-    // Raw BREAK pulse only — UART is left halted until sendBreak/restoreOperationalBaud.
-    bool sendBreakPulse();
     bool sendDoubleBreak();
 
 private:
@@ -30,6 +28,7 @@ private:
     uint32_t _baud = 0;
     bool _initialized = false;
 
+    bool sendUartBreakFrame();
     bool restoreOperationalBaud();
     bool openUart(uint32_t baud, uint32_t config);
     void applyUpdiPhyConfig();

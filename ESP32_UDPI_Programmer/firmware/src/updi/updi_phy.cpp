@@ -193,39 +193,53 @@ bool UpdiPhy::restoreOperationalBaud() {
     return true;
 }
 
-bool UpdiPhy::sendBreakPulse() {
-    updiDebugFmt("BREAK pulse us", UPDI_BREAK_LOW_US);
-    debugPinStates();
+bool UpdiPhy::sendUartBreakFrame() {
+    static const uint8_t breakChar = 0x00;
 
-    haltUart();
+    updiDebugMsg("BREAK TX 0x00");
+    if (!sendBytes(&breakChar, 1)) {
+        updiDebugMsg("BREAK fail: TX 0x00");
+        return false;
+    }
 
-    const gpio_num_t txGpio = static_cast<gpio_num_t>(_txPin);
-    gpio_set_pull_mode(txGpio, GPIO_PULLUP_ONLY);
-    gpio_set_direction(txGpio, GPIO_MODE_INPUT_OUTPUT_OD);
-    gpio_set_level(txGpio, 0);
-    delayMicroseconds(UPDI_BREAK_LOW_US);
-    gpio_set_level(txGpio, 1);
-
-    debugPinStates();
+    // Tied RX/TX echoes the break frame; pymcuprog blocks on read(1) here.
+    flushEcho(1);
     return true;
 }
 
 bool UpdiPhy::sendBreak() {
-    if (!sendBreakPulse()) {
+    updiDebugFmt("BREAK UART baud", UPDI_BREAK_BAUD);
+    debugPinStates();
+
+    if (!openUart(UPDI_BREAK_BAUD, SERIAL_8E1)) {
+        updiDebugMsg("BREAK fail: open low baud UART");
         return false;
     }
+
+    if (!sendUartBreakFrame()) {
+        return false;
+    }
+
     return restoreOperationalBaud();
 }
 
 bool UpdiPhy::sendDoubleBreak() {
-    updiDebugMsg("double BREAK start");
-    if (!sendBreakPulse()) {
+    updiDebugMsg("double BREAK via low baud 0x00");
+    updiDebugFmt("BREAK UART baud", UPDI_BREAK_BAUD);
+    debugPinStates();
+
+    if (!openUart(UPDI_BREAK_BAUD, SERIAL_8E1)) {
+        updiDebugMsg("BREAK fail: open low baud UART");
         return false;
     }
 
-    delayMicroseconds(UPDI_BREAK_GAP_US);
+    if (!sendUartBreakFrame()) {
+        return false;
+    }
 
-    if (!sendBreakPulse()) {
+    delay(UPDI_BREAK_GAP_MS);
+
+    if (!sendUartBreakFrame()) {
         return false;
     }
 

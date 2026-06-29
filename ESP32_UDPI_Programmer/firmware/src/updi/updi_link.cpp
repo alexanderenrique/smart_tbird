@@ -8,7 +8,15 @@ bool UpdiLink::init() {
         return false;
     }
 
-    if (!_phy.sendDoubleBreak()) {
+    if (UPDI_USE_DOUBLE_BREAK) {
+        if (!_phy.sendDoubleBreak()) {
+            return false;
+        }
+    } else if (!_phy.sendBreak()) {
+        return false;
+    }
+
+    if (!initDatalink()) {
         return false;
     }
 
@@ -17,7 +25,15 @@ bool UpdiLink::init() {
         return true;
     }
 
-    if (!_phy.sendDoubleBreak()) {
+    if (UPDI_USE_DOUBLE_BREAK) {
+        if (!_phy.sendDoubleBreak()) {
+            return false;
+        }
+    } else if (!_phy.sendBreak()) {
+        return false;
+    }
+
+    if (!initDatalink()) {
         return false;
     }
 
@@ -25,8 +41,16 @@ bool UpdiLink::init() {
 }
 
 bool UpdiLink::initDatalink() {
-    // Debug: STCS writes disabled — BREAK -> SYNCH -> LDCS STATUSA only.
-    updiDebugMsg("init datalink skipped (STCS disabled)");
+    updiDebugMsg("init datalink: STCS CTRLB CCDETDIS");
+    if (!stcs(UPDI_CS_CTRLB, UPDI_CTRLB_CCDETDIS)) {
+        updiDebugMsg("init datalink fail at STCS CTRLB");
+        return false;
+    }
+    updiDebugMsg("init datalink: STCS CTRLA IBDLY");
+    if (!stcs(UPDI_CS_CTRLA, UPDI_CTRLA_IBDLY)) {
+        updiDebugMsg("init datalink fail at STCS CTRLA");
+        return false;
+    }
     return true;
 }
 
@@ -121,10 +145,13 @@ size_t UpdiLink::echoLengthForInstruction(uint8_t instruction, UpdiAddressSize a
 }
 
 bool UpdiLink::stcs(uint8_t address, uint8_t value) {
-    (void)address;
-    (void)value;
-    updiDebugMsg("STCS disabled (debug)");
-    return false;
+    uint8_t instruction = UPDI_INST_STCS | (address & 0x0F);
+    updiDebugFmt("STCS addr", address);
+    updiDebugFmt("STCS value", value);
+    if (!sendInstruction(instruction)) {
+        return false;
+    }
+    return sendOperand(value);
 }
 
 bool UpdiLink::ldcs(uint8_t address, uint8_t &value) {

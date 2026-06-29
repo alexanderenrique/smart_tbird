@@ -83,7 +83,7 @@ If UPDI wiring or target power is wrong, the probe steps will show `FAIL` and yo
 To re-run the probe without rebooting:
 
 ```bash
-attiny-uploader updi-probe --port /dev/ttyUSB0
+attiny-uploader updi-probe --port /dev/cu.SLAB_USBtoUART
 ```
 
 While idle, a heartbeat repeats every 30 seconds:
@@ -125,7 +125,7 @@ Global options (all commands):
 | Option | Description |
 |--------|-------------|
 | `--port PORT` | Serial port (**required**) |
-| `--baud N` | USB serial baud (default: `9600`) |
+| `--baud N` | USB serial baud (default: `115200`) |
 | `--verbose` | Verbose logging |
 | `--json` | Machine-readable JSON output |
 
@@ -258,7 +258,7 @@ attiny-uploader --json --port /dev/ttyUSB0 --verify firmware.hex
 
 ## Host/device protocol
 
-ASCII line commands over USB serial at 9600 baud. Programming data is sent as raw binary chunks (128 bytes) with `OK` acknowledgements.
+ASCII line commands over USB serial at 115200 baud. Programming data is sent as raw binary chunks (128 bytes) with `OK` acknowledgements.
 
 Human-readable status lines use an `INFO ` prefix. The host CLI ignores these; they are only for serial monitor users.
 

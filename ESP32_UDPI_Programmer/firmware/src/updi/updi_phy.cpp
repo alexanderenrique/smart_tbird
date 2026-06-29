@@ -7,29 +7,47 @@
 
 static constexpr uart_port_t UPDI_UART_NUM = UART_NUM_2;
 
-void UpdiPhy::assignUartPins() {
-    esp_err_t err = uart_set_pin(UPDI_UART_NUM, _txPin, _rxPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-    if (err != ESP_OK) {
-        updiDebugFmt("uart_set_pin err", static_cast<uint32_t>(err));
-        return;
-    }
-    updiDebugFmt("UART2 TX GPIO", _txPin);
-    updiDebugFmt("UART2 RX GPIO", _rxPin);
-}
-
-void UpdiPhy::configureUartMode() {
-    // Hardware-tied RX2/TX2 on GPIO 16/17. Do not use RS485 half-duplex here —
-    // that mode gates RX via RTS for an external transceiver we do not have.
+// Match test/uart_tx_0x55 configureUpdiPhy(): UART mode + open-drain TX pull-up.
+void UpdiPhy::applyUpdiPhyConfig() {
     uart_set_mode(UPDI_UART_NUM, UART_MODE_UART);
-    updiDebugMsg("UART mode standard (hardware-tied RX2/TX2)");
-}
-
-void UpdiPhy::configureOpenDrainTx() {
-    // Open-drain TX only. Never call pinMode/gpio_set_direction on the RX pin —
-    // that disconnects UART2 RX from GPIO 16 and kills loopback on the tied bus.
     const gpio_num_t txGpio = static_cast<gpio_num_t>(_txPin);
     gpio_set_pull_mode(txGpio, GPIO_PULLUP_ONLY);
     gpio_set_direction(txGpio, GPIO_MODE_INPUT_OUTPUT_OD);
+}
+
+// Release UART2 and both tied-bus pads (see test/tx2_toggle_1hz releaseUart2Pins).
+void UpdiPhy::haltUart() {
+    if (_serial && _initialized) {
+        uart_wait_tx_done(UPDI_UART_NUM, pdMS_TO_TICKS(50));
+    }
+    if (_serial) {
+        _serial->end();
+    }
+    _initialized = false;
+
+    const gpio_num_t rxGpio = static_cast<gpio_num_t>(_rxPin);
+    const gpio_num_t txGpio = static_cast<gpio_num_t>(_txPin);
+    gpio_reset_pin(rxGpio);
+    gpio_reset_pin(txGpio);
+    gpio_set_direction(rxGpio, GPIO_MODE_INPUT);
+    gpio_set_pull_mode(rxGpio, GPIO_FLOATING);
+}
+
+bool UpdiPhy::openUart(uint32_t baud, uint32_t config) {
+    if (!_serial) {
+        return false;
+    }
+
+    haltUart();
+    _serial->begin(baud, config, _rxPin, _txPin, false);
+    applyUpdiPhyConfig();
+
+    while (_serial->available()) {
+        _serial->read();
+    }
+
+    _initialized = true;
+    return true;
 }
 
 void UpdiPhy::debugPinStates() const {
@@ -43,28 +61,21 @@ bool UpdiPhy::begin(uint8_t rxPin, uint8_t txPin, uint32_t baud) {
     _baud = baud;
     _serial = &Serial2;
 
-    _serial->end();
-    _serial->begin(baud, SERIAL_8E2, _rxPin, _txPin, false);
-    assignUartPins();
-    configureUartMode();
-    configureOpenDrainTx();
+    if (!openUart(baud, SERIAL_8E2)) {
+        return false;
+    }
 
-    delay(10);
     updiDebugFmt("UART open RX GPIO", rxPin);
     updiDebugFmt("UART open TX GPIO", txPin);
     updiDebugFmt("UART baud", baud);
     debugPinStates();
     updiDebugFlushRx(_serial, "RX flush after open");
 
-    _initialized = true;
     return true;
 }
 
 void UpdiPhy::end() {
-    if (_serial) {
-        _serial->end();
-    }
-    _initialized = false;
+    haltUart();
 }
 
 bool UpdiPhy::sendBytes(const uint8_t *data, size_t length) {
@@ -122,6 +133,24 @@ bool UpdiPhy::sendSynch() {
     return true;
 }
 
+bool UpdiPhy::sendSynchBurst(uint16_t count) {
+    if (!_initialized || !_serial || count == 0) {
+        return false;
+    }
+
+    const uint8_t synch = 0x55;
+    updiDebugFmt("SYNCH burst count", count);
+    for (uint16_t index = 0; index < count; ++index) {
+        if (_serial->write(&synch, 1) != 1) {
+            updiDebugMsg("SYNCH burst TX fail");
+            return false;
+        }
+    }
+    uart_wait_tx_done(UPDI_UART_NUM, pdMS_TO_TICKS(100));
+    flushEcho(count);
+    return true;
+}
+
 size_t UpdiPhy::flushEcho(size_t expectedEchoBytes) {
     uint8_t scratch[64];
     size_t totalRead = 0;
@@ -155,67 +184,48 @@ bool UpdiPhy::restoreOperationalBaud() {
         return false;
     }
 
-    _serial->end();
-    _serial->begin(_baud, SERIAL_8E2, _rxPin, _txPin, false);
-    assignUartPins();
-    configureUartMode();
-    configureOpenDrainTx();
+    if (!openUart(_baud, SERIAL_8E2)) {
+        return false;
+    }
 
-    delay(10);
     updiDebugFmt("UART restore baud", _baud);
     updiDebugFlushRx(_serial, "RX flush after baud restore");
-
-    _initialized = true;
     return true;
 }
 
-bool UpdiPhy::sendBreakCharacter() {
-    updiDebugMsg("BREAK @ 300 baud 8E1");
+bool UpdiPhy::sendBreakPulse() {
+    updiDebugFmt("BREAK pulse us", UPDI_BREAK_LOW_US);
     debugPinStates();
 
-    if (_initialized && _serial) {
-        uart_wait_tx_done(UPDI_UART_NUM, pdMS_TO_TICKS(100));
-        _serial->end();
-        _initialized = false;
-    }
+    haltUart();
 
-    // pymcuprog / serialupdi: 0x00 at 300 baud 8E1 holds the line low ~10 bit times
-    // (~33 ms), then read one byte to wait for the frame to finish on the wire.
-    _serial->begin(UPDI_BREAK_BAUD, SERIAL_8E1, _rxPin, _txPin, false);
-    assignUartPins();
-    configureUartMode();
-    configureOpenDrainTx();
+    const gpio_num_t txGpio = static_cast<gpio_num_t>(_txPin);
+    gpio_set_pull_mode(txGpio, GPIO_PULLUP_ONLY);
+    gpio_set_direction(txGpio, GPIO_MODE_INPUT_OUTPUT_OD);
+    gpio_set_level(txGpio, 0);
+    delayMicroseconds(UPDI_BREAK_LOW_US);
+    gpio_set_level(txGpio, 1);
 
-    const uint8_t breakCharacter = 0x00;
-    if (_serial->write(&breakCharacter, 1) != 1) {
-        updiDebugMsg("BREAK TX fail");
-        return false;
-    }
-    uart_wait_tx_done(UPDI_UART_NUM, pdMS_TO_TICKS(100));
-    updiDebugHex("BREAK TX", &breakCharacter, 1);
-
-    uint8_t discard = 0;
-    if (_serial->readBytes(&discard, 1) == 1) {
-        updiDebugHex("BREAK drain", &discard, 1);
-    } else {
-        updiDebugMsg("BREAK drain timeout");
-    }
-
-    _serial->end();
-    pinMode(_txPin, INPUT_PULLUP);
     debugPinStates();
     return true;
+}
+
+bool UpdiPhy::sendBreak() {
+    if (!sendBreakPulse()) {
+        return false;
+    }
+    return restoreOperationalBaud();
 }
 
 bool UpdiPhy::sendDoubleBreak() {
     updiDebugMsg("double BREAK start");
-    if (!sendBreakCharacter()) {
+    if (!sendBreakPulse()) {
         return false;
     }
 
-    delay(UPDI_DOUBLE_BREAK_GAP_MS);
+    delayMicroseconds(UPDI_BREAK_GAP_US);
 
-    if (!sendBreakCharacter()) {
+    if (!sendBreakPulse()) {
         return false;
     }
 

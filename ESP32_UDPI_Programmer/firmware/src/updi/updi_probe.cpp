@@ -63,6 +63,13 @@ void UpdiProbe::printSibFields(Stream &out, const char *sib, size_t length) cons
     out.println(osc);
 }
 
+static bool sendBreakSequence(UpdiPhy &phy) {
+    if (UPDI_USE_DOUBLE_BREAK) {
+        return phy.sendDoubleBreak();
+    }
+    return phy.sendBreak();
+}
+
 bool UpdiProbe::run(UpdiProbeResult &result) {
     result = UpdiProbeResult{};
 
@@ -81,8 +88,12 @@ bool UpdiProbe::run(UpdiProbeResult &result) {
         return false;
     }
 
-    result.breakSent = _phy.sendDoubleBreak();
-    debugStep(Serial, "step 1/2 send double BREAK", result.breakSent);
+    result.breakSent = sendBreakSequence(_phy);
+    debugStep(
+        Serial,
+        UPDI_USE_DOUBLE_BREAK ? "step 1 send double BREAK" : "step 1 send BREAK",
+        result.breakSent
+    );
     if (!result.breakSent) {
         return false;
     }
@@ -90,18 +101,41 @@ bool UpdiProbe::run(UpdiProbeResult &result) {
     updiDebugPinState(PIN_UPDI_RX);
     updiDebugPinState(PIN_UPDI_TX);
 
-    // Step 2: SYNCH + LDCS STATUSA (SYNCH is sent inside ldcs via sendInstruction).
-    result.datalinkOk = _link.checkDatalink(result.statusA);
-    debugStep(Serial, "step 2/2 SYNCH + LDCS STATUSA", result.datalinkOk);
+    result.datalinkOk = _phy.sendSynchBurst(UPDI_PROBE_SYNCH_COUNT);
+    debugStep(Serial, "step 2 stream 0x55 burst", result.datalinkOk);
     if (!result.datalinkOk) {
-        result.breakSent = _phy.sendDoubleBreak();
-        debugStep(Serial, "retry send double BREAK", result.breakSent);
+        return false;
+    }
+
+    if (!UPDI_SIMPLE_PROBE) {
+        result.datalinkOk = _link.initDatalink();
+        debugStep(Serial, "step 3 initialize datalink", result.datalinkOk);
+        if (!result.datalinkOk) {
+            return false;
+        }
+    }
+
+    result.datalinkOk = _link.checkDatalink(result.statusA);
+    debugStep(Serial, UPDI_SIMPLE_PROBE ? "step 3 LDCS STATUSA" : "step 4 LDCS STATUSA", result.datalinkOk);
+    if (!result.datalinkOk) {
+        result.breakSent = sendBreakSequence(_phy);
+        debugStep(Serial, "retry BREAK", result.breakSent);
         if (!result.breakSent) {
             return false;
         }
 
+        if (!_phy.sendSynchBurst(UPDI_PROBE_SYNCH_COUNT)) {
+            debugStep(Serial, "retry 0x55 burst", false);
+            return false;
+        }
+
+        if (!UPDI_SIMPLE_PROBE && !_link.initDatalink()) {
+            debugStep(Serial, "retry initialize datalink", false);
+            return false;
+        }
+
         result.datalinkOk = _link.checkDatalink(result.statusA);
-        debugStep(Serial, "retry SYNCH + LDCS STATUSA", result.datalinkOk);
+        debugStep(Serial, "retry LDCS STATUSA", result.datalinkOk);
         if (!result.datalinkOk) {
             updiDebugPinState(PIN_UPDI_RX);
             updiDebugPinState(PIN_UPDI_TX);

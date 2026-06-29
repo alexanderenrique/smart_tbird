@@ -14,11 +14,13 @@ public:
     bool receiveBytes(uint8_t *data, size_t length, uint32_t timeoutMs = UPDI_RX_TIMEOUT_MS);
 
     bool sendSynch();
+    bool sendSynchBurst(uint16_t count);
     size_t flushEcho(size_t expectedEchoBytes);
 
-    // Send a BREAK (12+ consecutive low bits) to reset UPDI state.
-    bool sendBreakCharacter();
-    // Two consecutive BREAKs per Microchip UPDI spec (error recovery / init).
+    // GPIO low pulse on TX, then restore 115200 8E2 UART (open-drain).
+    bool sendBreak();
+    // Raw BREAK pulse only — UART is left halted until sendBreak/restoreOperationalBaud.
+    bool sendBreakPulse();
     bool sendDoubleBreak();
 
 private:
@@ -29,8 +31,8 @@ private:
     bool _initialized = false;
 
     bool restoreOperationalBaud();
-    void configureUartMode();
-    void configureOpenDrainTx();
-    void assignUartPins();
+    bool openUart(uint32_t baud, uint32_t config);
+    void applyUpdiPhyConfig();
+    void haltUart();
     void debugPinStates() const;
 };

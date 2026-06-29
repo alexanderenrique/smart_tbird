@@ -14,7 +14,7 @@
 // GPIO 1/3 (primary UART header) are reserved for USB serial to the PC.
 
 // USB serial to PC (must match platformio.ini monitor_speed and attiny-uploader --baud).
-static const uint32_t USB_SERIAL_BAUD = 9600;
+static const uint32_t USB_SERIAL_BAUD = 115200;
 
 // UPDI on Serial2: hardware-tie RX2 and TX2, then 4.7k series resistor to target UPDI.
 static const int PIN_UPDI_RX = 16;
@@ -33,11 +33,20 @@ static const uint32_t UPDI_BAUD = 115200;
 // Verbose hex-level UPDI logging on USB serial.
 static const bool UPDI_DEBUG = true;
 
-// BREAK baud rate and framing (pymcuprog serialupdi convention).
-static const uint32_t UPDI_BREAK_BAUD = 300;
+// BREAK: GPIO low pulse on open-drain TX (~12+ bit times @ 115200).
+static const uint32_t UPDI_BREAK_LOW_US = 200;
 
-// Gap between the two BREAKs in a double-BREAK sequence (ms).
-static const uint32_t UPDI_DOUBLE_BREAK_GAP_MS = 100;
+// Idle-high gap between BREAK pulses when UPDI_USE_DOUBLE_BREAK is true (µs, not ms).
+static const uint32_t UPDI_BREAK_GAP_US = 500;
+
+// Single BREAK is enough for scope bring-up; enable double-BREAK for spec-compliant recovery.
+static const bool UPDI_USE_DOUBLE_BREAK = false;
+
+// Minimal boot probe: BREAK -> 0x55 burst -> LDCS STATUSA (skip STCS init).
+static const bool UPDI_SIMPLE_PROBE = true;
+
+// 0x55 frames sent after BREAK so the scope matches uart_tx_0x55.
+static const uint16_t UPDI_PROBE_SYNCH_COUNT = 32;
 
 // RX timeout for UPDI response bytes (ms).
 static const uint32_t UPDI_RX_TIMEOUT_MS = 300;

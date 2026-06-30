@@ -4171,29 +4171,27 @@
 			(on_board yes)
 			(in_pos_files yes)
 			(duplicate_pin_numbers_are_jumpers no)
-			(property "Reference" "Q"
-				(at 5.08 1.905 0)
+			(property "Reference" "Q1"
+				(at 6.35 0 90)
 				(show_name no)
 				(do_not_autoplace no)
 				(effects
 					(font
 						(size 1.27 1.27)
 					)
-					(justify left)
 				)
 			)
-			(property "Value" "IRL7472L1"
-				(at 5.08 0 0)
+			(property "Value" "IRLS3036"
+				(at 8.89 0 90)
 				(show_name no)
 				(do_not_autoplace no)
 				(effects
 					(font
 						(size 1.27 1.27)
 					)
-					(justify left)
 				)
 			)
-			(property "Footprint" "Package_DirectFET:DirectFET_L8"
+			(property "Footprint" "Package_TO_SOT_SMD:TO-263-3_TabPin2"
 				(at 5.08 -1.905 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -4419,10 +4417,10 @@
 				)
 			)
 			(symbol "IRL7472L1_1_1"
-				(pin passive line
-					(at 2.54 5.08 270)
+				(pin input line
+					(at -5.08 0 0)
 					(length 2.54)
-					(name "D"
+					(name "G"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -4437,10 +4435,10 @@
 						)
 					)
 				)
-				(pin input line
-					(at -5.08 0 0)
+				(pin passive line
+					(at 2.54 5.08 270)
 					(length 2.54)
-					(name "G"
+					(name "D"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -4701,12 +4699,6 @@
 		(uuid "31b177a0-5910-49b1-974d-f0faeef4d382")
 	)
 	(junction
-		(at 81.28 186.69)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "321241bf-7e1f-4ba5-a430-fe919b95899a")
-	)
-	(junction
 		(at 102.87 102.87)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -4753,6 +4745,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "44c1ed26-a5bc-4595-9a09-6d8b68cb74f8")
+	)
+	(junction
+		(at 66.04 167.64)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "4514bc30-2e63-442b-838a-7d2852152a64")
 	)
 	(junction
 		(at 172.72 59.69)
@@ -5576,16 +5574,6 @@
 	)
 	(wire
 		(pts
-			(xy 81.28 196.85) (xy 81.28 186.69)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "27f447fa-4840-4a98-9d44-221acfe142a3")
-	)
-	(wire
-		(pts
 			(xy 92.71 97.79) (xy 127 97.79)
 		)
 		(stroke
@@ -5666,16 +5654,6 @@
 	)
 	(wire
 		(pts
-			(xy 76.2 186.69) (xy 81.28 186.69)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "300613c1-86d9-4217-9a3f-1f4fc9f7b7e4")
-	)
-	(wire
-		(pts
 			(xy 48.26 115.57) (xy 53.34 115.57)
 		)
 		(stroke
@@ -5683,6 +5661,16 @@
 			(type default)
 		)
 		(uuid "301eb603-a5d0-4cc8-acbe-d5f426cb5670")
+	)
+	(wire
+		(pts
+			(xy 66.04 167.64) (xy 66.04 163.83)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "31e55037-20ba-45d1-98ec-592b16c092a4")
 	)
 	(wire
 		(pts
@@ -7226,7 +7214,7 @@
 	)
 	(wire
 		(pts
-			(xy 81.28 186.69) (xy 91.44 186.69)
+			(xy 76.2 186.69) (xy 91.44 186.69)
 		)
 		(stroke
 			(width 0)
@@ -7656,7 +7644,7 @@
 	)
 	(wire
 		(pts
-			(xy 66.04 180.34) (xy 66.04 163.83)
+			(xy 66.04 180.34) (xy 66.04 167.64)
 		)
 		(stroke
 			(width 0)
@@ -8539,6 +8527,83 @@
 			(project "engine_monitor"
 				(path "/a04e26e1-c343-4c2d-bd02-547bfd5a36b9"
 					(reference "#PWR07")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 66.04 167.64 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "2517c8bd-d0fc-4758-833a-5ad74363b098")
+		(property "Reference" "TP4"
+			(at 62.738 162.56 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "Tach"
+			(at 62.738 165.1 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector:Alex_35thou_wire_hole"
+			(at 66.04 162.56 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 66.04 162.56 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "test point"
+			(at 66.04 167.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "2553ef52-ea41-4153-82a3-d7f4d72eb276")
+		)
+		(instances
+			(project "engine_monitor"
+				(path "/a04e26e1-c343-4c2d-bd02-547bfd5a36b9"
+					(reference "TP4")
 					(unit 1)
 				)
 			)
@@ -13668,85 +13733,6 @@
 			(project "engine_monitor"
 				(path "/a04e26e1-c343-4c2d-bd02-547bfd5a36b9"
 					(reference "D3")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Connector:Conn_01x01_Socket")
-		(at 81.28 201.93 270)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "ef0e1d26-5d4f-4956-8ecf-91df0232e295")
-		(property "Reference" "J11"
-			(at 82.55 200.0249 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "Tach-"
-			(at 82.55 202.5649 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "Connector:Alex_1pin_065thou"
-			(at 81.28 201.93 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 81.28 201.93 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Generic connector, single row, 01x01, script generated"
-			(at 81.28 201.93 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "00465d99-1773-46d5-974e-c0a5fdffc055")
-		)
-		(instances
-			(project "engine_monitor"
-				(path "/a04e26e1-c343-4c2d-bd02-547bfd5a36b9"
-					(reference "J11")
 					(unit 1)
 				)
 			)

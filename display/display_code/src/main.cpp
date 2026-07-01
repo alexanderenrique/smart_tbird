@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include "tft_setup.h"  // TOUCH_CS and TFT pins (also force-included via platformio.ini)
 #include <lvgl.h>
 #include <TFT_eSPI.h>
 #include <esp_log.h>
@@ -59,16 +60,40 @@ void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color
 }
 
 #if defined(TOUCH_CS) && (TOUCH_CS >= 0)
-void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data) {
-    uint16_t touchX, touchY;
-    bool touched = tft.getTouch(&touchX, &touchY);
+static constexpr int DISPLAY_WIDTH = 320;
+static constexpr int DISPLAY_HEIGHT = 480;
 
-    if (!touched) {
-        data->state = LV_INDEV_STATE_REL;
+// Touch input read callback for LVGL (matches NEMO display-firmware)
+void touch_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data) {
+    uint16_t x = 0;
+    uint16_t y = 0;
+    bool touched = tft.getTouch(&x, &y);
+
+    static bool was_pressed = false;
+
+    if (touched) {
+        if (x >= DISPLAY_WIDTH) x = DISPLAY_WIDTH - 1;
+        if (y >= DISPLAY_HEIGHT) y = DISPLAY_HEIGHT - 1;
+        // XPT2046 Y is inverted vs LVGL for this panel (same as NEMO ILI9488 setup)
+        data->point.x = x;
+        data->point.y = (DISPLAY_HEIGHT - 1) - y;
+        data->state = LV_INDEV_STATE_PRESSED;
+        if (!was_pressed) {
+            Serial.print("Touch: pressed at (");
+            Serial.print(x);
+            Serial.print(", ");
+            Serial.print(y);
+            Serial.println(")");
+            was_pressed = true;
+        }
     } else {
-        data->state = LV_INDEV_STATE_PR;
-        data->point.x = touchX;
-        data->point.y = touchY;
+        data->state = LV_INDEV_STATE_RELEASED;
+        data->point.x = 0;
+        data->point.y = 0;
+        if (was_pressed) {
+            Serial.println("Touch: released");
+            was_pressed = false;
+        }
     }
 }
 #endif
@@ -290,10 +315,15 @@ void initLvgl() {
     lv_disp_drv_register(&disp_drv);
 
 #if defined(TOUCH_CS) && (TOUCH_CS >= 0)
+    char touchMsg[64];
+    snprintf(touchMsg, sizeof(touchMsg), "Touch: LVGL input enabled (T_CS=GPIO %d)", TOUCH_CS);
+    bootLog(touchMsg);
     lv_indev_drv_init(&indev_drv);
     indev_drv.type = LV_INDEV_TYPE_POINTER;
-    indev_drv.read_cb = my_touchpad_read;
+    indev_drv.read_cb = touch_read;
     lv_indev_drv_register(&indev_drv);
+#else
+    bootLog("Touch: DISABLED — TOUCH_CS not defined at compile time");
 #endif
 }
 
@@ -361,6 +391,10 @@ void setup() {
 }
 
 void loop() {
+    // LVGL tick + handler (matches NEMO: 5 ms loop for responsive touch polling)
+    lv_tick_inc(5);
+    lv_timer_handler();
+
     static unsigned long last_heartbeat = 0;
     if (millis() - last_heartbeat >= 5000) {
         bootLog("heartbeat");
@@ -376,13 +410,11 @@ void loop() {
         last_update = millis();
     }
 
-    lv_timer_handler();
-
     static unsigned long last_full_refresh = 0;
     if (millis() - last_full_refresh >= 500) {
         lv_refr_now(NULL);
         last_full_refresh = millis();
     }
 
-    delay(10);
+    delay(5);
 }

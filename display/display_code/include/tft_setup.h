@@ -19,8 +19,9 @@
 
 // TFT Pins (GPIO 9–14 are the FSPI bus on ESP32-S3)
 
-// Touch disabled for display bring-up; GPIO 3 is a strapping pin on S3
-// #define TOUCH_CS 3
+// XPT2046 touch chip select (T_CS); shares SPI bus with TFT (MISO/MOSI/SCLK above).
+// GPIO 3 is a strapping pin on S3 — keep T_CS high when idle; matches display harness.
+#define TOUCH_CS 3
 #ifndef TFT_MISO 
 #define TFT_MISO 9 //Touch_DO
 #endif
@@ -59,6 +60,9 @@
 #define SPI_FREQUENCY       10000000
 #define SPI_READ_FREQUENCY  10000000
 #define SPI_TOUCH_FREQUENCY 2500000
+
+// Required on ESP32 when TFT and XPT2046 share SPI (auto-set on S3; explicit for parity with NEMO)
+#define SUPPORT_TRANSACTIONS
 
 // ESP32-S3: use HSPI if default FSPI pins conflict with your wiring
 // #define USE_HSPI_PORT

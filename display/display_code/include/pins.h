@@ -24,7 +24,13 @@ constexpr int LDR_ADC = 20;      // was GPIO 4 on ESP32
 // Backlight PWM (LEDC)
 constexpr int BACKLIGHT_PWM = 4; // was GPIO 25 on ESP32
 
-// TFT SPI and touch pins are configured in tft_setup.h (TFT_eSPI macros).
+// TFT SPI bus and TOUCH_CS are configured in tft_setup.h (TFT_eSPI macros).
+// Touch shares MOSI/SCLK/MISO with the TFT; only T_CS is a separate GPIO.
+constexpr int TOUCH_CS_GPIO = 3;  // must match #define TOUCH_CS in tft_setup.h
+
+inline bool touchPinAssigned() {
+    return TOUCH_CS_GPIO >= 0;
+}
 
 inline bool modbusPinsAssigned() {
     return ENABLE_MODBUS_RTU && MODBUS_RX >= 0 && MODBUS_TX >= 0 && MODBUS_DE_RE >= 0;

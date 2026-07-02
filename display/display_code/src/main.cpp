@@ -13,6 +13,24 @@
 
 TFT_eSPI tft = TFT_eSPI();
 
+// Set to 1 to sweep backlight 0%→100%→0% (10 s each way) at 40 kHz for hardware bring-up.
+#define BACKLIGHT_SWEEP_TEST 1
+
+#if BACKLIGHT_SWEEP_TEST
+static constexpr uint32_t BACKLIGHT_PWM_HZ = 5000;
+static constexpr uint8_t BACKLIGHT_PWM_BITS = 8;
+static constexpr int BACKLIGHT_DUTY_MIN = 0;    // 0% brightness (pin low, display off)
+static constexpr int BACKLIGHT_DUTY_MAX = 255;  // 100% brightness (pin high, display on)
+static constexpr unsigned long BACKLIGHT_SWEEP_HALF_MS = 10000;
+#endif
+
+static int backlightDuty(int brightness_0_to_255) {
+    if (Pins::BACKLIGHT_ACTIVE_HIGH) {
+        return brightness_0_to_255;
+    }
+    return 255 - brightness_0_to_255;
+}
+
 static constexpr int LVGL_BUF_LINES = 10;
 static lv_disp_draw_buf_t draw_buf;
 static lv_color_t buf[320 * LVGL_BUF_LINES];
@@ -105,6 +123,35 @@ void touch_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data) {
 }
 #endif
 
+#if BACKLIGHT_SWEEP_TEST
+void updateBacklightSweep() {
+    if (!Pins::backlightPinAssigned()) return;
+
+    const unsigned long cycle_ms = BACKLIGHT_SWEEP_HALF_MS * 2;
+    const unsigned long phase_ms = millis() % cycle_ms;
+    int brightness;
+
+    if (phase_ms < BACKLIGHT_SWEEP_HALF_MS) {
+        brightness = BACKLIGHT_DUTY_MIN +
+                     (int)((long)(BACKLIGHT_DUTY_MAX - BACKLIGHT_DUTY_MIN) * phase_ms / BACKLIGHT_SWEEP_HALF_MS);
+    } else {
+        const unsigned long down_ms = phase_ms - BACKLIGHT_SWEEP_HALF_MS;
+        brightness = BACKLIGHT_DUTY_MAX -
+                     (int)((long)(BACKLIGHT_DUTY_MAX - BACKLIGHT_DUTY_MIN) * down_ms / BACKLIGHT_SWEEP_HALF_MS);
+    }
+
+    ledcWrite(0, backlightDuty(brightness));
+
+    static unsigned long last_label_update = 0;
+    if (brightness_label && millis() - last_label_update >= 100) {
+        char brightness_text[30];
+        sprintf(brightness_text, "Brt: %d%%", (brightness * 100) / 255);
+        lv_label_set_text(brightness_label, brightness_text);
+        lv_obj_invalidate(brightness_label);
+        last_label_update = millis();
+    }
+}
+#else
 void updateBrightnessData(int ldr_value) {
     if (!brightness_label) return;
 
@@ -127,7 +174,7 @@ void updateBrightnessData(int ldr_value) {
     if (current_brightness > max_brightness) current_brightness = max_brightness;
 
     if (Pins::backlightPinAssigned()) {
-        ledcWrite(0, current_brightness);
+        ledcWrite(0, backlightDuty(current_brightness));
     }
 
     char brightness_text[30];
@@ -135,7 +182,9 @@ void updateBrightnessData(int ldr_value) {
     lv_label_set_text(brightness_label, brightness_text);
     lv_obj_invalidate(brightness_label);
 }
+#endif
 
+#if !BACKLIGHT_SWEEP_TEST
 void updateLDRData() {
     if (!Pins::ldrPinAssigned()) return;
 
@@ -170,6 +219,7 @@ void updateLDRData() {
 
     updateBrightnessData(ldr_smoothed);
 }
+#endif
 
 void setPlaceholderLabels() {
     lv_label_set_text(voltage_label, "Voltage: --");
@@ -290,11 +340,21 @@ void initLdrAndBacklight() {
 
     if (Pins::backlightPinAssigned()) {
         pinMode(Pins::BACKLIGHT_PWM, OUTPUT);
-        digitalWrite(Pins::BACKLIGHT_PWM, LOW);
+        digitalWrite(Pins::BACKLIGHT_PWM, Pins::BACKLIGHT_ACTIVE_HIGH ? LOW : HIGH);
+#if BACKLIGHT_SWEEP_TEST
+        ledcSetup(0, BACKLIGHT_PWM_HZ, BACKLIGHT_PWM_BITS);
+        ledcAttachPin(Pins::BACKLIGHT_PWM, 0);
+        ledcWrite(0, backlightDuty(BACKLIGHT_DUTY_MIN));
+        Serial.printf("Backlight sweep on GPIO %d: %u Hz, 0%%-100%% over %lu s each way (active-%s)\n",
+                      Pins::BACKLIGHT_PWM, BACKLIGHT_PWM_HZ, BACKLIGHT_SWEEP_HALF_MS / 1000,
+                      Pins::BACKLIGHT_ACTIVE_HIGH ? "high" : "low");
+#else
         ledcSetup(0, 25000, 8);
         ledcAttachPin(Pins::BACKLIGHT_PWM, 0);
-        ledcWrite(0, 128);
-        Serial.printf("Backlight PWM on GPIO %d\n", Pins::BACKLIGHT_PWM);
+        ledcWrite(0, backlightDuty(128));
+        Serial.printf("Backlight PWM on GPIO %d (active-%s)\n",
+                      Pins::BACKLIGHT_PWM, Pins::BACKLIGHT_ACTIVE_HIGH ? "high" : "low");
+#endif
     } else {
         Serial.println("WARN: BACKLIGHT_PWM not assigned in pins.h");
     }
@@ -407,6 +467,10 @@ void loop() {
     lv_tick_inc(5);
     lv_timer_handler();
 
+#if BACKLIGHT_SWEEP_TEST
+    updateBacklightSweep();
+#endif
+
     static unsigned long last_heartbeat = 0;
     if (millis() - last_heartbeat >= 5000) {
         bootLog("heartbeat");
@@ -415,7 +479,9 @@ void loop() {
 
     static unsigned long last_update = 0;
     if (millis() - last_update >= 100) {
+#if !BACKLIGHT_SWEEP_TEST
         updateLDRData();
+#endif
 #if ENABLE_MODBUS_RTU
         updateModbusData();
 #endif

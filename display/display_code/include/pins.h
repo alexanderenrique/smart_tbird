@@ -21,14 +21,15 @@ constexpr int MODBUS_DE_RE = -1;
 // Local LDR for auto-dim backlight
 constexpr int LDR_ADC = 20;      // was GPIO 4 on ESP32
 
-// Backlight PWM (LEDC)
-constexpr int BACKLIGHT_PWM = 4; // was GPIO 25 on ESP32
+// Backlight PWM (LEDC) — GPIO HIGH enables backlight (active-high)
+constexpr int BACKLIGHT_PWM = 5; // was GPIO 25 on ESP32
+constexpr bool BACKLIGHT_ACTIVE_HIGH = true;
 
 // Local Voltage (Vbat)
-constexpr int VOLTAGE_ADC = 5;
+constexpr int VOLTAGE_ADC = -1;
 
 // PCB board temperature
-constexpr int BOARD_TEMP_ADC = 6;
+constexpr int BOARD_TEMP_ADC = -1;
 
 // TFT SPI bus and TOUCH_CS are configured in tft_setup.h (TFT_eSPI macros).
 // Touch shares MOSI/SCLK/MISO with the TFT; only T_CS is a separate GPIO.

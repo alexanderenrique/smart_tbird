@@ -13,14 +13,12 @@
 
 TFT_eSPI tft = TFT_eSPI();
 
-// Set to 1 to sweep backlight 0%→100%→0% (10 s each way) at 40 kHz for hardware bring-up.
-#define BACKLIGHT_SWEEP_TEST 1
+// Set to 1 to sweep backlight 0%→100%→0% for hardware bring-up (disables LDR auto-dim).
+#define BACKLIGHT_SWEEP_TEST 0
 
 #if BACKLIGHT_SWEEP_TEST
-static constexpr uint32_t BACKLIGHT_PWM_HZ = 5000;
-static constexpr uint8_t BACKLIGHT_PWM_BITS = 8;
-static constexpr int BACKLIGHT_DUTY_MIN = 0;    // 0% brightness (pin low, display off)
-static constexpr int BACKLIGHT_DUTY_MAX = 255;  // 100% brightness (pin high, display on)
+static constexpr int BACKLIGHT_DUTY_MIN = 0;
+static constexpr int BACKLIGHT_DUTY_MAX = 255;
 static constexpr unsigned long BACKLIGHT_SWEEP_HALF_MS = 10000;
 #endif
 
@@ -341,19 +339,18 @@ void initLdrAndBacklight() {
     if (Pins::backlightPinAssigned()) {
         pinMode(Pins::BACKLIGHT_PWM, OUTPUT);
         digitalWrite(Pins::BACKLIGHT_PWM, Pins::BACKLIGHT_ACTIVE_HIGH ? LOW : HIGH);
-#if BACKLIGHT_SWEEP_TEST
-        ledcSetup(0, BACKLIGHT_PWM_HZ, BACKLIGHT_PWM_BITS);
+        ledcSetup(0, Pins::BACKLIGHT_PWM_HZ, Pins::BACKLIGHT_PWM_BITS);
         ledcAttachPin(Pins::BACKLIGHT_PWM, 0);
+#if BACKLIGHT_SWEEP_TEST
         ledcWrite(0, backlightDuty(BACKLIGHT_DUTY_MIN));
         Serial.printf("Backlight sweep on GPIO %d: %u Hz, 0%%-100%% over %lu s each way (active-%s)\n",
-                      Pins::BACKLIGHT_PWM, BACKLIGHT_PWM_HZ, BACKLIGHT_SWEEP_HALF_MS / 1000,
+                      Pins::BACKLIGHT_PWM, Pins::BACKLIGHT_PWM_HZ, BACKLIGHT_SWEEP_HALF_MS / 1000,
                       Pins::BACKLIGHT_ACTIVE_HIGH ? "high" : "low");
 #else
-        ledcSetup(0, 25000, 8);
-        ledcAttachPin(Pins::BACKLIGHT_PWM, 0);
         ledcWrite(0, backlightDuty(128));
-        Serial.printf("Backlight PWM on GPIO %d (active-%s)\n",
-                      Pins::BACKLIGHT_PWM, Pins::BACKLIGHT_ACTIVE_HIGH ? "high" : "low");
+        Serial.printf("Backlight PWM on GPIO %d: %u Hz (active-%s)\n",
+                      Pins::BACKLIGHT_PWM, Pins::BACKLIGHT_PWM_HZ,
+                      Pins::BACKLIGHT_ACTIVE_HIGH ? "high" : "low");
 #endif
     } else {
         Serial.println("WARN: BACKLIGHT_PWM not assigned in pins.h");

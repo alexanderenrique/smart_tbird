@@ -24,6 +24,9 @@ constexpr int LDR_ADC = 20;      // was GPIO 4 on ESP32
 // Backlight PWM (LEDC) — GPIO HIGH enables backlight (active-high)
 constexpr int BACKLIGHT_PWM = 5; // was GPIO 25 on ESP32
 constexpr bool BACKLIGHT_ACTIVE_HIGH = true;
+// Tuned via sweep test: 5 kHz gives better dimming range than 25–40 kHz on this hardware.
+constexpr uint32_t BACKLIGHT_PWM_HZ = 5000;
+constexpr uint8_t BACKLIGHT_PWM_BITS = 8;
 
 // Local Voltage (Vbat)
 constexpr int VOLTAGE_ADC = -1;

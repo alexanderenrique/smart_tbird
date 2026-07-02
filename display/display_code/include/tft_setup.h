@@ -20,29 +20,17 @@
 // TFT Pins (GPIO 9–14 are the FSPI bus on ESP32-S3)
 
 // XPT2046 touch chip select (T_CS); shares SPI bus with TFT (MISO/MOSI/SCLK above).
-// GPIO 3 is a strapping pin on S3 — keep T_CS high when idle; matches display harness.
-#define TOUCH_CS 3
-#ifndef TFT_MISO 
-#define TFT_MISO 9 //Touch_DO
-#endif
-#ifndef TFT_SCLK
+#define TOUCH_CS 8 
 #define TFT_SCLK 10
-#endif
-#ifndef TFT_MOSI
 #define TFT_MOSI 11 //Touch_DIN
-#endif
-#ifndef TFT_DC
 #define TFT_DC 12  //Data/Command (DC/RS)
-#endif
-#ifndef TFT_RST
 #define TFT_RST 13
-#endif
-#ifndef TFT_CS
 #define TFT_CS 14
-#endif
+// XPT2046 T_DO (MISO) — TFT_eSPI reads touch on TFT_MISO, not TOUCH_DO (NEMO: TFT_MISO 32)
+#define TFT_MISO 18
 
-
-
+// Set to 1 for verbose touch/SPI diagnostics on Serial (115200)
+#define TOUCH_DEBUG 1
 
 
 
@@ -60,6 +48,9 @@
 #define SPI_FREQUENCY       10000000
 #define SPI_READ_FREQUENCY  10000000
 #define SPI_TOUCH_FREQUENCY 2500000
+
+// Pressure threshold passed to tft.getTouch() — lower if Z reads 200-400 while pressing
+#define TOUCH_PRESSURE_THRESHOLD 200
 
 // Required on ESP32 when TFT and XPT2046 share SPI (auto-set on S3; explicit for parity with NEMO)
 #define SUPPORT_TRANSACTIONS

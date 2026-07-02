@@ -18,15 +18,21 @@ constexpr int MODBUS_RX    = -1;
 constexpr int MODBUS_TX    = -1;
 constexpr int MODBUS_DE_RE = -1;
 
-// Local LDR for auto-dim backlight (only analog input on this board)
+// Local LDR for auto-dim backlight
 constexpr int LDR_ADC = 20;      // was GPIO 4 on ESP32
 
 // Backlight PWM (LEDC)
 constexpr int BACKLIGHT_PWM = 4; // was GPIO 25 on ESP32
 
+// Local Voltage (Vbat)
+constexpr int VOLTAGE_ADC = 5;
+
+// PCB board temperature
+constexpr int BOARD_TEMP_ADC = 6;
+
 // TFT SPI bus and TOUCH_CS are configured in tft_setup.h (TFT_eSPI macros).
 // Touch shares MOSI/SCLK/MISO with the TFT; only T_CS is a separate GPIO.
-constexpr int TOUCH_CS_GPIO = 3;  // must match #define TOUCH_CS in tft_setup.h
+constexpr int TOUCH_CS_GPIO = 8;  // must match #define TOUCH_CS in tft_setup.h
 
 inline bool touchPinAssigned() {
     return TOUCH_CS_GPIO >= 0;

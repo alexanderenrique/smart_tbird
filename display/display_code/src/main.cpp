@@ -4,6 +4,7 @@
 #include <TFT_eSPI.h>
 #include <esp_log.h>
 #include "pins.h"
+#include "touch_debug.h"
 #if ENABLE_MODBUS_RTU
 #include "ModbusClientRTU.h"
 #include "RTUutils.h"
@@ -67,23 +68,29 @@ static constexpr int DISPLAY_HEIGHT = 480;
 void touch_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data) {
     uint16_t x = 0;
     uint16_t y = 0;
-    bool touched = tft.getTouch(&x, &y);
+    bool touched = tft.getTouch(&x, &y, TOUCH_PRESSURE_THRESHOLD);
 
     static bool was_pressed = false;
 
     if (touched) {
         if (x >= DISPLAY_WIDTH) x = DISPLAY_WIDTH - 1;
         if (y >= DISPLAY_HEIGHT) y = DISPLAY_HEIGHT - 1;
+        const int lvgl_x = x;
+        const int lvgl_y = (DISPLAY_HEIGHT - 1) - y;
         // XPT2046 Y is inverted vs LVGL for this panel (same as NEMO ILI9488 setup)
-        data->point.x = x;
-        data->point.y = (DISPLAY_HEIGHT - 1) - y;
+        data->point.x = lvgl_x;
+        data->point.y = lvgl_y;
         data->state = LV_INDEV_STATE_PRESSED;
         if (!was_pressed) {
+#if TOUCH_DEBUG
+            TouchDebug::logPressDetail(tft, x, y, lvgl_x, lvgl_y);
+#else
             Serial.print("Touch: pressed at (");
             Serial.print(x);
             Serial.print(", ");
             Serial.print(y);
             Serial.println(")");
+#endif
             was_pressed = true;
         }
     } else {
@@ -318,6 +325,11 @@ void initLvgl() {
     char touchMsg[64];
     snprintf(touchMsg, sizeof(touchMsg), "Touch: LVGL input enabled (T_CS=GPIO %d)", TOUCH_CS);
     bootLog(touchMsg);
+#if TOUCH_DEBUG
+    TouchDebug::logPinConfig();
+    bootLog("Touch: running boot raw sample...");
+    TouchDebug::logRawSample(tft, "boot");
+#endif
     lv_indev_drv_init(&indev_drv);
     indev_drv.type = LV_INDEV_TYPE_POINTER;
     indev_drv.read_cb = touch_read;
@@ -415,6 +427,10 @@ void loop() {
         lv_refr_now(NULL);
         last_full_refresh = millis();
     }
+
+#if defined(TOUCH_CS) && (TOUCH_CS >= 0) && TOUCH_DEBUG
+    TouchDebug::poll(tft);
+#endif
 
     delay(5);
 }

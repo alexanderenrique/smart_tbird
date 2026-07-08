@@ -11,6 +11,9 @@
 // Set to 1 when RS-485 is wired and ready to test
 #define ENABLE_MODBUS_RTU 0
 
+// Backlight: 0 = hold BACKLIGHT_FIXED_DUTY (no LDR); 1 = auto-dim from LDR_ADC
+#define BACKLIGHT_AUTO_DIM 0
+
 namespace Pins {
 
 // RS-485 Modbus (MAX485) — dummy pins while disabled; must NOT use 43/44 (USB on S3)
@@ -18,8 +21,10 @@ constexpr int MODBUS_RX    = -1;
 constexpr int MODBUS_TX    = -1;
 constexpr int MODBUS_DE_RE = -1;
 
-// Local LDR for auto-dim backlight
-constexpr int LDR_ADC = 20;      // was GPIO 4 on ESP32
+// Local LDR for auto-dim backlight (-1 when not wired)
+constexpr int LDR_ADC = -1;
+
+constexpr int BACKLIGHT_FIXED_DUTY = 255;  // 0-255, full on for active-high PWM
 
 // Backlight PWM (LEDC) — GPIO HIGH enables backlight (active-high)
 constexpr int BACKLIGHT_PWM = 5; // was GPIO 25 on ESP32
@@ -47,7 +52,7 @@ inline bool modbusPinsAssigned() {
 }
 
 inline bool ldrPinAssigned() {
-    return LDR_ADC >= 0;
+    return BACKLIGHT_AUTO_DIM && LDR_ADC >= 0;
 }
 
 inline bool backlightPinAssigned() {

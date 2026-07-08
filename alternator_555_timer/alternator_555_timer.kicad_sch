@@ -1828,16 +1828,22 @@
 		(uuid "04b6fa62-daa2-4072-935b-2b73d21f0bf3")
 	)
 	(junction
+		(at 179.07 93.98)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "08a260fc-b661-40a1-9cad-051fbc739187")
+	)
+	(junction
 		(at 107.95 49.53)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "16ed9ea2-f689-4109-8834-22888f7e9311")
 	)
 	(junction
-		(at 182.88 93.98)
+		(at 190.5 77.47)
 		(diameter 0)
 		(color 0 0 0 0)
-		(uuid "1a70b642-864a-4225-ac01-97ad8716c757")
+		(uuid "1e8ac709-1e2a-4297-9a5d-2220e153c20a")
 	)
 	(junction
 		(at 168.91 93.98)
@@ -2048,6 +2054,16 @@
 	)
 	(wire
 		(pts
+			(xy 179.07 93.98) (xy 182.88 93.98)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "37d63ce4-3d3c-4366-aabc-50b8a38114f8")
+	)
+	(wire
+		(pts
 			(xy 115.57 88.9) (xy 115.57 52.07)
 		)
 		(stroke
@@ -2078,16 +2094,6 @@
 	)
 	(wire
 		(pts
-			(xy 182.88 120.65) (xy 182.88 115.57)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "44e2d310-5938-4cb9-a086-89d0e973497f")
-	)
-	(wire
-		(pts
 			(xy 190.5 99.06) (xy 190.5 104.14)
 		)
 		(stroke
@@ -2095,6 +2101,16 @@
 			(type default)
 		)
 		(uuid "45b336cd-4512-4bcd-820e-9eb97d71d4e3")
+	)
+	(wire
+		(pts
+			(xy 190.5 77.47) (xy 190.5 88.9)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "47388052-451d-4907-a6ee-ab54f386c0b8")
 	)
 	(wire
 		(pts
@@ -2115,16 +2131,6 @@
 			(type default)
 		)
 		(uuid "4baea507-4b71-49f4-9e7c-5af4f6f3c464")
-	)
-	(wire
-		(pts
-			(xy 182.88 93.98) (xy 182.88 107.95)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "4bda274f-987e-4af4-a4e0-40f6d7369ebd")
 	)
 	(wire
 		(pts
@@ -2308,6 +2314,16 @@
 	)
 	(wire
 		(pts
+			(xy 179.07 81.28) (xy 179.07 77.47)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "8d6dc927-c175-436e-b6c4-c79563e93a42")
+	)
+	(wire
+		(pts
 			(xy 200.66 118.11) (xy 200.66 120.65)
 		)
 		(stroke
@@ -2378,7 +2394,7 @@
 	)
 	(wire
 		(pts
-			(xy 168.91 93.98) (xy 182.88 93.98)
+			(xy 168.91 93.98) (xy 179.07 93.98)
 		)
 		(stroke
 			(width 0)
@@ -2408,6 +2424,16 @@
 	)
 	(wire
 		(pts
+			(xy 179.07 88.9) (xy 179.07 93.98)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "d6390f10-29ec-4136-8701-12d164a26035")
+	)
+	(wire
+		(pts
 			(xy 77.47 49.53) (xy 95.25 49.53)
 		)
 		(stroke
@@ -2418,17 +2444,7 @@
 	)
 	(wire
 		(pts
-			(xy 182.88 120.65) (xy 190.5 120.65)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "db33f99b-3923-4a02-a063-7ff31b55cba7")
-	)
-	(wire
-		(pts
-			(xy 190.5 71.12) (xy 190.5 88.9)
+			(xy 190.5 71.12) (xy 190.5 77.47)
 		)
 		(stroke
 			(width 0)
@@ -2455,6 +2471,16 @@
 			(type default)
 		)
 		(uuid "eaf2fb45-9185-488b-a9dc-ab261481397f")
+	)
+	(wire
+		(pts
+			(xy 179.07 77.47) (xy 190.5 77.47)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f49e97b3-deee-463b-b896-774899376907")
 	)
 	(wire
 		(pts
@@ -2540,7 +2566,7 @@
 			(uuid "2203263b-db0f-4fe4-bffc-e3ab84ba5df0")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "C1")
 					(unit 1)
@@ -2618,7 +2644,7 @@
 			(uuid "f3e9b0ad-545a-451f-86de-9dfb9597dc5d")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "#PWR010")
 					(unit 1)
@@ -2697,7 +2723,7 @@
 			(uuid "443d207d-e609-4b71-be84-3faccf24604b")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "#PWR08")
 					(unit 1)
@@ -2775,7 +2801,7 @@
 			(uuid "b286f1ae-84ea-40e8-a129-5e48fa48bfde")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "#PWR07")
 					(unit 1)
@@ -2853,7 +2879,7 @@
 			(uuid "26e8d907-c7ee-4948-9d5d-2364977a76bc")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "#PWR02")
 					(unit 1)
@@ -2932,7 +2958,7 @@
 			(uuid "4e73739a-bd50-4f27-b8a6-0a5d444e11dc")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "C3")
 					(unit 1)
@@ -3014,7 +3040,7 @@
 			(uuid "12093aea-145d-4227-95c5-475aa037f027")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "C4")
 					(unit 1)
@@ -3024,7 +3050,7 @@
 	)
 	(symbol
 		(lib_id "Diode:SS33")
-		(at 182.88 111.76 90)
+		(at 179.07 85.09 270)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -3035,18 +3061,18 @@
 		(fields_autoplaced yes)
 		(uuid "3c6c8b56-cb24-4ac5-afd5-e9d41ef275dd")
 		(property "Reference" "D1"
-			(at 185.42 110.8074 90)
+			(at 181.61 84.7724 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify right)
+				(justify left)
 			)
 		)
 		(property "Value" "SZ1SMB15AT3G"
-			(at 185.42 113.3474 90)
+			(at 176.53 83.5026 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3058,7 +3084,7 @@
 			)
 		)
 		(property "Footprint" "Diode_SMD:D_SMB_Handsoldering"
-			(at 187.325 111.76 0)
+			(at 174.625 85.09 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3069,7 +3095,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 182.88 111.76 0)
+			(at 179.07 85.09 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3080,7 +3106,7 @@
 			)
 		)
 		(property "Description" "Gate/Drain TVS protection"
-			(at 182.88 111.76 0)
+			(at 179.07 85.09 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3097,7 +3123,7 @@
 			(uuid "f2f803b9-678e-46c5-98b6-a3165501c00a")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "D1")
 					(unit 1)
@@ -3188,7 +3214,7 @@
 			(uuid "d1448b8c-fcb1-4b26-b6bd-4ff0f4604d8a")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "D4")
 					(unit 1)
@@ -3266,7 +3292,7 @@
 			(uuid "95d47811-b9ac-4316-9146-937b98e69962")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "#PWR04")
 					(unit 1)
@@ -3343,7 +3369,7 @@
 			(uuid "b9e25a02-0803-46e9-95f1-7eab176dbd9d")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "J1")
 					(unit 1)
@@ -3425,7 +3451,7 @@
 			(uuid "0a31852f-d92c-4b22-85cd-4c42847d5f1d")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "R1")
 					(unit 1)
@@ -3503,7 +3529,7 @@
 			(uuid "eb6bb5c5-ba3b-4f60-8328-474a895bb04a")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "#PWR01")
 					(unit 1)
@@ -3581,7 +3607,7 @@
 			(uuid "dd280db8-e079-48b6-9bdf-1e4a1b256824")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "#PWR09")
 					(unit 1)
@@ -3672,7 +3698,7 @@
 			(uuid "152949f3-2e48-42c5-b421-6cc4aeb0f6a7")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "D3")
 					(unit 1)
@@ -3754,7 +3780,7 @@
 			(uuid "075af229-78ee-4e4f-8337-f473b46e5979")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "R3")
 					(unit 1)
@@ -3835,7 +3861,7 @@
 			(uuid "ca9ec347-b594-45cc-9467-f1352d6e1389")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "D2")
 					(unit 1)
@@ -3917,7 +3943,7 @@
 			(uuid "7e667b70-15ee-49a3-840a-4c34b514c7dd")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "C2")
 					(unit 1)
@@ -3996,7 +4022,7 @@
 			(uuid "d67f0c33-ac10-4d73-af44-2800afbc4a3d")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "J3")
 					(unit 1)
@@ -4095,7 +4121,7 @@
 			(uuid "f096a700-c70c-4ef1-8766-f6caef2040e7")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "U1")
 					(unit 1)
@@ -4173,7 +4199,7 @@
 			(uuid "a9ea0320-ac01-45d2-997c-820a9ef29f31")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "#PWR03")
 					(unit 1)
@@ -4261,7 +4287,7 @@
 			(uuid "5c0a7db0-572e-473a-87d3-3ae984741a3d")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "Q1")
 					(unit 1)
@@ -4343,7 +4369,7 @@
 			(uuid "a31d8306-2b63-4930-a2be-f9beee8d4225")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "R4")
 					(unit 1)
@@ -4421,7 +4447,7 @@
 			(uuid "ec6df6ed-74e1-439b-8fed-01e81645bec7")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "#PWR06")
 					(unit 1)
@@ -4504,7 +4530,7 @@
 			(uuid "dfec795a-1bf6-4583-ae94-611430b0a732")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "F1")
 					(unit 1)
@@ -4584,7 +4610,7 @@
 			(uuid "cce01a24-56d2-4dd3-b7c8-3ea7c0d9c034")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "R2")
 					(unit 1)
@@ -4663,7 +4689,7 @@
 			(uuid "cb257019-9594-4ea2-a5f0-3c24e1c91ab0")
 		)
 		(instances
-			(project "555_I_delay"
+			(project "alternator_555_timer"
 				(path "/686101b5-5487-4618-9623-99f46b13644e"
 					(reference "J2")
 					(unit 1)

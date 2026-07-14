@@ -11,6 +11,9 @@ extern "C" {
 
 void pp_anim_stop_timelines_for_deleted_tree(lv_obj_t * root);
 
+/** Wire left/right swipe navigation between screen_1 and screen_2. */
+void ui_enable_swipe_navigation(void);
+
 #ifdef __cplusplus
 }
 #endif

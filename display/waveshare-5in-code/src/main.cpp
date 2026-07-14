@@ -8,6 +8,8 @@
 
 #include "lvgl_v8_port.h"
 #include "ui/ui.h"
+#include "telemetry/rs485_modbus.h"
+#include "telemetry/ui_telemetry.h"
 
 using namespace esp_panel::drivers;
 using namespace esp_panel::board;
@@ -42,14 +44,24 @@ void setup()
     ui_init();
     lvgl_port_unlock();
 
+    initRs485();
+
     Serial.println("UI ready");
 }
 
 void loop()
 {
+    pollRs485();
+
+    TelemetryData telemetry = {};
+    const bool have_fresh = rs485TakeFreshTelemetry(&telemetry);
+
     /* lv_timer_handler runs in the LVGL port task; tick the PicoPixel UI here. */
     if (lvgl_port_lock(10)) {
         ui_tick();
+        if (have_fresh) {
+            ui_apply_telemetry(telemetry);
+        }
         lvgl_port_unlock();
     }
     delay(5);

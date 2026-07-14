@@ -4,13 +4,93 @@
 #include "colors.h"
 #include "ui.h"
 
+#include <stdio.h>
+
 // Animation timeline helpers
 void pp_anim_stop_timelines_for_deleted_tree(lv_obj_t * root) {
     (void)root;
 }
 
 
-// Event callback implementations
+static void enable_gesture_bubble_recursive(lv_obj_t *obj) {
+    const uint32_t child_cnt = lv_obj_get_child_cnt(obj);
+    for (uint32_t i = 0; i < child_cnt; i++) {
+        lv_obj_t *child = lv_obj_get_child(obj, i);
+        lv_obj_add_flag(child, LV_OBJ_FLAG_GESTURE_BUBBLE);
+        /* Display-only gauges should not eat presses. */
+        lv_obj_clear_flag(child, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_clear_flag(child, LV_OBJ_FLAG_SCROLLABLE);
+        enable_gesture_bubble_recursive(child);
+    }
+}
 
-// No event callbacks defined
+static void prepare_screen_for_gestures(lv_obj_t *screen) {
+    /* Prevent rubber-band scroll that feels like a failed swipe. */
+    lv_obj_clear_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(screen, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_clear_flag(screen, LV_OBJ_FLAG_GESTURE_BUBBLE);
+    enable_gesture_bubble_recursive(screen);
+}
 
+typedef struct {
+    enum ScreensEnum target;
+} nav_request_t;
+
+static nav_request_t pending_nav;
+
+static void async_load_screen(void *user_data) {
+    const nav_request_t *req = (const nav_request_t *)user_data;
+    printf("[ui] async_load -> screen id=%d (was idx=%d)\n",
+           (int)req->target,
+           ui_get_current_screen_index());
+    loadScreen(req->target);
+}
+
+static void on_screen_gesture(lv_event_t *e) {
+    lv_obj_t *target = lv_event_get_current_target(e);
+    lv_indev_t *indev = lv_indev_get_act();
+    if (indev == NULL) {
+        printf("[ui] gesture: no indev\n");
+        return;
+    }
+
+    const lv_dir_t dir = lv_indev_get_gesture_dir(indev);
+    printf("[ui] gesture on %p dir=%d (L=1 R=2) cur_idx=%d act=%p\n",
+           (void *)target,
+           (int)dir,
+           ui_get_current_screen_index(),
+           (void *)lv_scr_act());
+
+    enum ScreensEnum next = SCREEN_ID_SCREEN_1;
+    if (dir == LV_DIR_LEFT) {
+        next = SCREEN_ID_SCREEN_2;
+    } else if (dir == LV_DIR_RIGHT) {
+        next = SCREEN_ID_SCREEN_1;
+    } else {
+        printf("[ui] gesture ignored (vertical/other)\n");
+        return;
+    }
+
+    /* Defer switch until after indev handling finishes. */
+    pending_nav.target = next;
+    lv_async_call(async_load_screen, &pending_nav);
+    lv_indev_wait_release(indev);
+}
+
+void ui_enable_swipe_navigation(void) {
+    if (objects.screen_1) {
+        prepare_screen_for_gestures(objects.screen_1);
+        lv_obj_add_event_cb(objects.screen_1, on_screen_gesture, LV_EVENT_GESTURE, NULL);
+        printf("[ui] swipe enabled on screen_1 %p\n", (void *)objects.screen_1);
+    } else {
+        printf("[ui] swipe SKIP: screen_1 is NULL\n");
+    }
+
+    if (objects.screen_2) {
+        prepare_screen_for_gestures(objects.screen_2);
+        lv_obj_add_event_cb(objects.screen_2, on_screen_gesture, LV_EVENT_GESTURE, NULL);
+        printf("[ui] swipe enabled on screen_2 %p\n", (void *)objects.screen_2);
+    } else {
+        printf("[ui] swipe SKIP: screen_2 is NULL\n");
+    }
+}

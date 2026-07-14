@@ -5,25 +5,72 @@
 #include "actions.h"
 #include "vars.h"
 
+#include <stdio.h>
 #include <string.h>
 
 static int16_t currentScreen = -1;
 
-static lv_obj_t *getLvglObjectFromIndex(int32_t index) {
-    if (index == -1) {
-        return 0;
+int ui_get_current_screen_index(void) {
+    return (int)currentScreen;
+}
+
+static lv_obj_t *screen_obj_for_id(enum ScreensEnum screenId) {
+    switch (screenId) {
+    case SCREEN_ID_SCREEN_1:
+        return objects.screen_1;
+    case SCREEN_ID_SCREEN_2:
+        return objects.screen_2;
+    default:
+        return NULL;
     }
-    return ((lv_obj_t **)&objects)[index];
 }
 
 void loadScreen(enum ScreensEnum screenId) {
-    currentScreen = screenId - 1;
-    lv_obj_t *screen = getLvglObjectFromIndex(currentScreen);
-    lv_scr_load_anim(screen, LV_SCR_LOAD_ANIM_FADE_IN, 200, 0, false);
+    const int16_t nextScreen = (int16_t)(screenId - 1);
+    lv_obj_t *screen = screen_obj_for_id(screenId);
+
+    printf("[ui] loadScreen id=%d idx=%d obj=%p (s1=%p s2=%p) from=%d act=%p\n",
+           (int)screenId,
+           (int)nextScreen,
+           (void *)screen,
+           (void *)objects.screen_1,
+           (void *)objects.screen_2,
+           (int)currentScreen,
+           (void *)lv_scr_act());
+
+    if (screen == NULL) {
+        printf("[ui] loadScreen ABORT: screen object is NULL\n");
+        return;
+    }
+
+    if (nextScreen == currentScreen && lv_scr_act() == screen) {
+        printf("[ui] loadScreen skip: already on screen %d\n", (int)nextScreen);
+        return;
+    }
+
+    currentScreen = nextScreen;
+
+    /*
+     * MOVE animations need both screens drawn offset; that breaks with RGB
+     * full-refresh / avoid-tearing. Use a plain load so screen 2 actually appears.
+     */
+    lv_scr_load(screen);
+
+    printf("[ui] loadScreen done: act=%p children=%u\n",
+           (void *)lv_scr_act(),
+           (unsigned)lv_obj_get_child_cnt(screen));
 }
 
 void ui_init() {
     create_screens();
+
+    printf("[ui] create_screens done: s1=%p children=%u | s2=%p children=%u\n",
+           (void *)objects.screen_1,
+           objects.screen_1 ? (unsigned)lv_obj_get_child_cnt(objects.screen_1) : 0u,
+           (void *)objects.screen_2,
+           objects.screen_2 ? (unsigned)lv_obj_get_child_cnt(objects.screen_2) : 0u);
+
+    ui_enable_swipe_navigation();
     loadScreen(SCREEN_ID_SCREEN_1);
 }
 

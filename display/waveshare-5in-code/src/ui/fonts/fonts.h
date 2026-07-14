@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 /* Custom font declarations (externally visible const structs, no init needed) */
-/* No custom fonts */
+LV_FONT_DECLARE(lv_font_montserrat_96)
 
 /* Get a custom font by name, returns NULL if not found */
 const lv_font_t* ui_get_font_by_name(const char* name);

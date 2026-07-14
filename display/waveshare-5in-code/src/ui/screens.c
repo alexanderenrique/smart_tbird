@@ -13,6 +13,44 @@
 objects_t objects;
 lv_obj_t *tick_value_change_obj;
 
+/*
+ * LVGL draws the arc circle using min(w,h) and left/top pads — not the
+ * geometric center of a non-square widget. Align the value + caption as one
+ * vertical stack on that true circle center.
+ */
+void ui_align_afr_readout(void) {
+    if (!objects.afr_arc || !objects.afr_value_label || !objects.afr_label) {
+        return;
+    }
+
+    lv_obj_update_layout(objects.afr_arc);
+    lv_obj_update_layout(objects.afr_value_label);
+    lv_obj_update_layout(objects.afr_label);
+
+    const lv_coord_t left = lv_obj_get_style_pad_left(objects.afr_arc, LV_PART_MAIN);
+    const lv_coord_t right = lv_obj_get_style_pad_right(objects.afr_arc, LV_PART_MAIN);
+    const lv_coord_t top = lv_obj_get_style_pad_top(objects.afr_arc, LV_PART_MAIN);
+    const lv_coord_t bottom = lv_obj_get_style_pad_bottom(objects.afr_arc, LV_PART_MAIN);
+    const lv_coord_t w = lv_obj_get_width(objects.afr_arc);
+    const lv_coord_t h = lv_obj_get_height(objects.afr_arc);
+    const lv_coord_t r = LV_MIN(w - left - right, h - top - bottom) / 2;
+
+    const lv_coord_t cx = lv_obj_get_x(objects.afr_arc) + left + r;
+    const lv_coord_t cy = lv_obj_get_y(objects.afr_arc) + top + r;
+
+    const lv_coord_t vw = lv_obj_get_width(objects.afr_value_label);
+    const lv_coord_t vh = lv_obj_get_height(objects.afr_value_label);
+    const lv_coord_t lw = lv_obj_get_width(objects.afr_label);
+    const lv_coord_t lh = lv_obj_get_height(objects.afr_label);
+
+    const lv_coord_t gap = 4;
+    const lv_coord_t stack_h = vh + gap + lh;
+    const lv_coord_t stack_top = cy - stack_h / 2;
+
+    lv_obj_set_pos(objects.afr_value_label, cx - vw / 2, stack_top);
+    lv_obj_set_pos(objects.afr_label, cx - lw / 2, stack_top + vh + gap);
+}
+
 void create_screen_screen_1() {
     lv_obj_t *obj = lv_obj_create(0);
     objects.screen_1 = obj;
@@ -68,11 +106,11 @@ void create_screen_screen_1() {
             lv_label_set_text(obj, "Voltage");
         }
         {
-            // afr_arc
+            // afr_arc (square so widget center == LVGL circle center)
             lv_obj_t *obj = lv_arc_create(parent_obj);
             objects.afr_arc = obj;
             lv_obj_set_pos(obj, 596, 96);
-            lv_obj_set_size(obj, 448, 392);
+            lv_obj_set_size(obj, 392, 392);
             lv_arc_set_bg_angles(obj, 135, 45);
             lv_arc_set_range(obj, 100, 180);  /* AFR tenths: 10.0–18.0 */
             lv_arc_set_value(obj, 147);
@@ -233,7 +271,7 @@ void create_screen_screen_1() {
             objects.afr_value_label = obj;
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
             lv_obj_set_style_text_opa(obj, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_text_font(obj, &lv_font_montserrat_48, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_text_font(obj, &lv_font_montserrat_96, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_text_color(obj, lv_color_hex(common_ea0c0c), LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_label_set_text(obj, "14.7");
         }
@@ -311,10 +349,9 @@ void create_screen_screen_1() {
         lv_obj_align_to(objects.coolant_value_label, objects.coolant_bar, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
         lv_obj_align_to(objects.trans_value_label, objects.trans_bar, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
 
-        /* Center AFR value + caption on the arc (no transform_zoom — it breaks align). */
+        /* Center AFR value + caption on the arc circle (not the widget box). */
         lv_obj_update_layout(objects.screen_1);
-        lv_obj_align_to(objects.afr_value_label, objects.afr_arc, LV_ALIGN_CENTER, 0, -28);
-        lv_obj_align_to(objects.afr_label, objects.afr_arc, LV_ALIGN_CENTER, 0, 28);
+        ui_align_afr_readout();
     }
 
     tick_screen_screen_1();

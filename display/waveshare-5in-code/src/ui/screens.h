@@ -56,6 +56,9 @@ void create_screen_screen_2();
 void tick_screen_screen_2();
 void delete_screen_screen_2();
 
+/* Keep AFR value + "AFR" caption stacked on the arc circle center. */
+void ui_align_afr_readout(void);
+
 void tick_screen_by_id(enum ScreensEnum screenId);
 void tick_screen(int screen_index);
 

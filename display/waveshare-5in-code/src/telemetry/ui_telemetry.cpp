@@ -113,10 +113,5 @@ void ui_apply_telemetry(const TelemetryData &data) {
     if (objects.fan_pwm_value_label && objects.bar_2) {
         lv_obj_align_to(objects.fan_pwm_value_label, objects.bar_2, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
     }
-    if (objects.afr_value_label && objects.afr_arc) {
-        lv_obj_align_to(objects.afr_value_label, objects.afr_arc, LV_ALIGN_CENTER, 0, -28);
-    }
-    if (objects.afr_label && objects.afr_arc) {
-        lv_obj_align_to(objects.afr_label, objects.afr_arc, LV_ALIGN_CENTER, 0, 28);
-    }
+    ui_align_afr_readout();
 }

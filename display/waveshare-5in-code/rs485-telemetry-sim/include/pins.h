@@ -5,8 +5,8 @@
 
 namespace Pins {
 
-constexpr int MODBUS_RX = 16;    // RO → ESP32 RX
-constexpr int MODBUS_TX = 17;    // DI → ESP32 TX
+constexpr int MODBUS_RX = 16;    // RO → ESP32 RX2
+constexpr int MODBUS_TX = 17;    // DI → ESP32 TX2
 constexpr int MODBUS_DE_RE = 4;  // DE+RE tied together
 
 }  // namespace Pins

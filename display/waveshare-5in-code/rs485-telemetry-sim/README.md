@@ -22,7 +22,7 @@ On the Waveshare board, RS-485 is onboard (GPIO 43/44, auto DE/RE). Enable the 1
 
 ## Protocol
 
-- Slave ID **1**, **9600** 8N1
+- Slave ID **1**, **115200** 8N1 (same as Waveshare `02_RS485_Test`)
 - Holding registers **0–8** (see map below)
 
 | Reg | Field | Encoding | Sweep range |

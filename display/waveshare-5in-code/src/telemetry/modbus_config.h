@@ -8,7 +8,7 @@
 namespace ModbusConfig {
 
 constexpr uint8_t SLAVE_ID = 1;
-constexpr uint32_t BAUD_RATE = 9600;
+constexpr uint32_t BAUD_RATE = 115200;  // Waveshare RS-485 demos / link test
 constexpr uint32_t TIMEOUT_MS = 2000;
 constexpr uint32_t POLL_INTERVAL_MS = 500;
 

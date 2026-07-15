@@ -1,12 +1,20 @@
 #pragma once
 
-// MAX485 / SP3485 breakout defaults for a generic ESP32 DevKit.
-// Adjust to match your wiring before flashing.
+#include <Arduino.h>
+
+// ATtiny3226 board packaging + MAX485 / SP3485 wiring.
+//
+// USART0 alternate mux (Serial.swap(1)):
+//   TX = PA1  → DI
+//   RX = PA2  ← RO
+//   DE+RE = PA3
+//
+// Arduino digital pin numbers from megaTinyCore txy6 variant.
 
 namespace Pins {
 
-constexpr int MODBUS_RX = 16;    // RO → ESP32 RX2
-constexpr int MODBUS_TX = 17;    // DI → ESP32 TX2
-constexpr int MODBUS_DE_RE = 4;  // DE+RE tied together
+constexpr uint8_t MODBUS_TX = PIN_PA1;    // 14 — DI ← ATtiny TX
+constexpr uint8_t MODBUS_RX = PIN_PA2;    // 15 — RO → ATtiny RX
+constexpr uint8_t MODBUS_DE_RE = PIN_PA3; // 16 — DE+RE tied; HIGH = drive bus
 
 }  // namespace Pins

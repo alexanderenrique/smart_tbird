@@ -9,6 +9,7 @@
 #include "vars.h"
 #include "styles.h"
 #include "ui.h"
+#include "segment_bar.h"
 
 objects_t objects;
 lv_obj_t *tick_value_change_obj;
@@ -69,30 +70,14 @@ void create_screen_screen_1() {
             lv_obj_set_style_text_opa(obj, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_text_font(obj, &lv_font_montserrat_36, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_text_color(obj, lv_color_hex(common_ebc46b), LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_label_set_text(obj, "160 F");
+            lv_label_set_text(obj, "250 F");
         }
         {
-            // coolant_bar
-            lv_obj_t *obj = lv_bar_create(parent_obj);
+            // coolant_bar: blue 50–160, green 160–210, red 210–250
+            lv_obj_t *obj = segment_bar_create(parent_obj, 50, 160, 210, 250);
             objects.coolant_bar = obj;
             lv_obj_set_pos(obj, 20, 396);
             lv_obj_set_size(obj, 372, 57);
-            lv_bar_set_range(obj, 50, 250);
-            lv_bar_set_value(obj, 180, LV_ANIM_OFF);
-            lv_obj_set_style_bg_color(obj, lv_color_hex(common_3d3d3d), LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_radius(obj, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_color(obj, lv_color_hex(common_0c9bea), LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_pad_bottom(obj, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_pad_top(obj, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_main_stop(obj, 94, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_pad_left(obj, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_pad_right(obj, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_grad_dir(obj, LV_GRAD_DIR_HOR, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_radius(obj, 20, LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_opa(obj, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_grad_color(obj, lv_color_hex(common_ea0c0c), LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_grad_stop(obj, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
         }
         {
             // voltage_label
@@ -133,27 +118,11 @@ void create_screen_screen_1() {
             lv_obj_set_style_arc_opa(obj, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
         }
         {
-            // oil_bar
-            lv_obj_t *obj = lv_bar_create(parent_obj);
+            // oil_bar: blue 50–180, green 180–220, red 220–250
+            lv_obj_t *obj = segment_bar_create(parent_obj, 50, 180, 220, 250);
             objects.oil_bar = obj;
             lv_obj_set_pos(obj, 20, 266);
             lv_obj_set_size(obj, 372, 57);
-            lv_bar_set_range(obj, 50, 250);
-            lv_bar_set_value(obj, 190, LV_ANIM_OFF);
-            lv_obj_set_style_bg_color(obj, lv_color_hex(common_3d3d3d), LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_radius(obj, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_color(obj, lv_color_hex(common_0c9bea), LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_pad_bottom(obj, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_pad_top(obj, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_main_stop(obj, 94, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_pad_left(obj, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_pad_right(obj, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_grad_dir(obj, LV_GRAD_DIR_HOR, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_radius(obj, 20, LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_opa(obj, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_grad_color(obj, lv_color_hex(common_ea0c0c), LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_grad_stop(obj, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
         }
         {
             // afr_label
@@ -185,7 +154,7 @@ void create_screen_screen_1() {
             lv_obj_set_style_text_opa(obj, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_text_font(obj, &lv_font_montserrat_36, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_text_color(obj, lv_color_hex(common_ebc46b), LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_label_set_text(obj, "180 F");
+            lv_label_set_text(obj, "250 F");
         }
         {
             // title
@@ -211,27 +180,12 @@ void create_screen_screen_1() {
             lv_label_set_text(obj, "Oil");
         }
         {
-            // bar_1
-            lv_obj_t *obj = lv_bar_create(parent_obj);
+            // bar_1 (RPM): yellow 0–3333, red 3333–5000
+            lv_obj_t *obj = segment_bar_create_2zone(parent_obj, 0, 3333, 5000,
+                                                     common_eadc0c, common_ea0c0c);
             objects.bar_1 = obj;
             lv_obj_set_pos(obj, 605, 521);
             lv_obj_set_size(obj, 372, 57);
-            lv_bar_set_range(obj, 0, 6000);
-            lv_bar_set_value(obj, 1500, LV_ANIM_OFF);
-            lv_obj_set_style_bg_color(obj, lv_color_hex(common_3d3d3d), LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_radius(obj, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_color(obj, lv_color_hex(common_eadc0c), LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_pad_bottom(obj, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_pad_top(obj, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_main_stop(obj, 128, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_pad_left(obj, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_pad_right(obj, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_grad_dir(obj, LV_GRAD_DIR_HOR, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_radius(obj, 20, LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_opa(obj, 140, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_grad_color(obj, lv_color_hex(common_ea0c0c), LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_grad_stop(obj, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
         }
         {
             // label_1
@@ -263,7 +217,7 @@ void create_screen_screen_1() {
             lv_obj_set_style_text_opa(obj, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_text_font(obj, &lv_font_montserrat_36, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_text_color(obj, lv_color_hex(common_ebc46b), LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_label_set_text(obj, "190 F");
+            lv_label_set_text(obj, "250 F");
         }
         {
             // afr_value_label
@@ -276,27 +230,11 @@ void create_screen_screen_1() {
             lv_label_set_text(obj, "14.7");
         }
         {
-            // trans_bar
-            lv_obj_t *obj = lv_bar_create(parent_obj);
+            // trans_bar: blue 50–160, green 160–200, red 200–250
+            lv_obj_t *obj = segment_bar_create(parent_obj, 50, 160, 200, 250);
             objects.trans_bar = obj;
             lv_obj_set_pos(obj, 20, 513);
             lv_obj_set_size(obj, 372, 57);
-            lv_bar_set_range(obj, 50, 250);
-            lv_bar_set_value(obj, 160, LV_ANIM_OFF);
-            lv_obj_set_style_bg_color(obj, lv_color_hex(common_3d3d3d), LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_radius(obj, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_color(obj, lv_color_hex(common_0c9bea), LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_pad_bottom(obj, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_pad_top(obj, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_main_stop(obj, 94, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_pad_left(obj, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_pad_right(obj, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_grad_dir(obj, LV_GRAD_DIR_HOR, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_radius(obj, 20, LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_opa(obj, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_grad_color(obj, lv_color_hex(common_ea0c0c), LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_grad_stop(obj, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
         }
         {
             // voltage_value_label
@@ -306,7 +244,7 @@ void create_screen_screen_1() {
             lv_obj_set_style_text_opa(obj, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_text_font(obj, &lv_font_montserrat_36, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_text_color(obj, lv_color_hex(common_ebc46b), LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_label_set_text(obj, "14.2V");
+            lv_label_set_text(obj, "16.0V");
         }
         {
             // rpm_value_label
@@ -320,27 +258,11 @@ void create_screen_screen_1() {
             lv_label_set_text(obj, "1500");
         }
         {
-            // voltage_bar
-            lv_obj_t *obj = lv_bar_create(parent_obj);
+            // voltage_bar (hundredths V): blue 10.0–12.0, green 12.0–15.0, red 15.0–16.0
+            lv_obj_t *obj = segment_bar_create(parent_obj, 1000, 1200, 1500, 1600);
             objects.voltage_bar = obj;
             lv_obj_set_pos(obj, 20, 140);
             lv_obj_set_size(obj, 372, 57);
-            lv_bar_set_range(obj, 1000, 1600);  /* hundredths of a volt: 10.00–16.00 V */
-            lv_bar_set_value(obj, 1420, LV_ANIM_OFF);
-            lv_obj_set_style_bg_color(obj, lv_color_hex(common_3d3d3d), LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_radius(obj, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_color(obj, lv_color_hex(common_0c9bea), LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_pad_bottom(obj, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_pad_top(obj, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_main_stop(obj, 94, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_pad_left(obj, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_pad_right(obj, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_grad_dir(obj, LV_GRAD_DIR_HOR, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_radius(obj, 20, LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_opa(obj, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_grad_color(obj, lv_color_hex(common_ea0c0c), LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_grad_stop(obj, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
         }
 
         /* Place value labels 10px past each bar, vertically centered. */
@@ -360,24 +282,6 @@ void create_screen_screen_1() {
 void tick_screen_screen_1() {
 }
 
-
-/* Match screen_1 temperature/voltage bar look (track + inset blue→red fill). */
-static void style_gauge_bar(lv_obj_t *obj) {
-    lv_obj_set_style_bg_color(obj, lv_color_hex(common_3d3d3d), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_radius(obj, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_color(obj, lv_color_hex(common_0c9bea), LV_PART_INDICATOR | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_bottom(obj, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_top(obj, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_main_stop(obj, 94, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_left(obj, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_right(obj, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_grad_dir(obj, LV_GRAD_DIR_HOR, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-    lv_obj_set_style_radius(obj, 20, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_opa(obj, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_grad_color(obj, lv_color_hex(common_ea0c0c), LV_PART_INDICATOR | LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_grad_stop(obj, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-}
 
 static void style_metric_label(lv_obj_t *obj) {
     lv_obj_set_style_text_opa(obj, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -417,14 +321,11 @@ void create_screen_screen_2() {
             lv_label_set_text(obj, "PCB");
         }
         {
-            // pcb_temp_bar
-            lv_obj_t *obj = lv_bar_create(parent_obj);
+            // pcb_temp_bar: blue 25–70, green 70–100, red 100–120
+            lv_obj_t *obj = segment_bar_create(parent_obj, 25, 70, 100, 120);
             objects.pcb_temp_bar = obj;
             lv_obj_set_pos(obj, 20, 140);
             lv_obj_set_size(obj, 372, 57);
-            lv_bar_set_range(obj, 25, 120);
-            lv_bar_set_value(obj, 75, LV_ANIM_OFF);
-            style_gauge_bar(obj);
         }
         {
             // label_3 (PCB value)
@@ -432,7 +333,7 @@ void create_screen_screen_2() {
             objects.label_3 = obj;
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
             style_metric_label(obj);
-            lv_label_set_text(obj, "75 F");
+            lv_label_set_text(obj, "120 F");
         }
         {
             // iat_label
@@ -444,14 +345,11 @@ void create_screen_screen_2() {
             lv_label_set_text(obj, "Intake");
         }
         {
-            // iat_temp_bar
-            lv_obj_t *obj = lv_bar_create(parent_obj);
+            // iat_temp_bar: blue 25–100, green 100–140, red 140–200
+            lv_obj_t *obj = segment_bar_create(parent_obj, 25, 100, 140, 200);
             objects.iat_temp_bar = obj;
             lv_obj_set_pos(obj, 20, 266);
             lv_obj_set_size(obj, 372, 57);
-            lv_bar_set_range(obj, 25, 200);
-            lv_bar_set_value(obj, 120, LV_ANIM_OFF);
-            style_gauge_bar(obj);
         }
         {
             // iat_value_label
@@ -459,7 +357,7 @@ void create_screen_screen_2() {
             objects.iat_value_label = obj;
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
             style_metric_label(obj);
-            lv_label_set_text(obj, "120 F");
+            lv_label_set_text(obj, "200 F");
         }
         {
             // fan_pwm_label
@@ -471,14 +369,11 @@ void create_screen_screen_2() {
             lv_label_set_text(obj, "Fan PWM");
         }
         {
-            // bar_2 (fan PWM)
-            lv_obj_t *obj = lv_bar_create(parent_obj);
+            // bar_2 (fan PWM): blue 0–30, green 30–70, red 70–100
+            lv_obj_t *obj = segment_bar_create(parent_obj, 0, 30, 70, 100);
             objects.bar_2 = obj;
             lv_obj_set_pos(obj, 20, 396);
             lv_obj_set_size(obj, 372, 57);
-            lv_bar_set_range(obj, 0, 100);
-            lv_bar_set_value(obj, 50, LV_ANIM_OFF);
-            style_gauge_bar(obj);
         }
         {
             // fan_pwm_value_label
@@ -486,7 +381,7 @@ void create_screen_screen_2() {
             objects.fan_pwm_value_label = obj;
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
             style_metric_label(obj);
-            lv_label_set_text(obj, "50 %");
+            lv_label_set_text(obj, "100 %");
         }
 
         /* Same value placement as screen_1: 10px past each bar, vertically centered. */

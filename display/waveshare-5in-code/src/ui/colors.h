@@ -13,6 +13,7 @@ extern const uint32_t common_000000;
 extern const uint32_t common_008eff;
 extern const uint32_t common_08283a;
 extern const uint32_t common_0c9bea;
+extern const uint32_t common_0cea3d;
 extern const uint32_t common_3d3d3d;
 extern const uint32_t common_cad670;
 extern const uint32_t common_ea0c0c;

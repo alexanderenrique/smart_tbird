@@ -6,6 +6,7 @@
 #include <lvgl.h>
 
 #include "ui/screens.h"
+#include "ui/segment_bar.h"
 
 static int32_t clamp_i32(int32_t value, int32_t lo, int32_t hi) {
     if (value < lo) {
@@ -60,22 +61,26 @@ void ui_apply_telemetry(const TelemetryData &data) {
         lv_label_set_text(objects.fan_pwm_value_label, buf);
     }
 
-    // Voltage bar uses hundredths of a volt (10.0–16.0 V → 1000–1600).
+    // Voltage bar uses hundredths of a volt (zones: 10.0–12.0 / 12.0–15.0 / 15.0–16.0).
     if (objects.voltage_bar) {
         const int32_t v = clamp_i32(static_cast<int32_t>(lroundf(data.voltage_v * 100.0f)), 1000, 1600);
-        lv_bar_set_value(objects.voltage_bar, v, LV_ANIM_OFF);
+        segment_bar_set_value(objects.voltage_bar, v);
     }
     if (objects.oil_bar) {
-        lv_bar_set_value(objects.oil_bar, clamp_i32(lroundf(data.oil_temp_f), 50, 250), LV_ANIM_OFF);
+        // Zones: 50–180 / 180–220 / 220–250
+        segment_bar_set_value(objects.oil_bar, clamp_i32(lroundf(data.oil_temp_f), 50, 250));
     }
     if (objects.coolant_bar) {
-        lv_bar_set_value(objects.coolant_bar, clamp_i32(lroundf(data.coolant_temp_f), 50, 250), LV_ANIM_OFF);
+        // Zones: 50–160 / 160–210 / 210–250
+        segment_bar_set_value(objects.coolant_bar, clamp_i32(lroundf(data.coolant_temp_f), 50, 250));
     }
     if (objects.trans_bar) {
-        lv_bar_set_value(objects.trans_bar, clamp_i32(lroundf(data.trans_temp_f), 50, 250), LV_ANIM_OFF);
+        // Zones: 50–160 / 160–200 / 200–250
+        segment_bar_set_value(objects.trans_bar, clamp_i32(lroundf(data.trans_temp_f), 50, 250));
     }
     if (objects.bar_1) {
-        lv_bar_set_value(objects.bar_1, clamp_i32(data.rpm, 0, 6000), LV_ANIM_OFF);
+        // Zones: 0–3333 (yellow) / 3333–5000 (red), linear 0–5000 RPM
+        segment_bar_set_value(objects.bar_1, clamp_i32(data.rpm, 0, 5000));
     }
     if (objects.afr_arc) {
         // Arc range is AFR tenths (100–180 for 10.0–18.0).
@@ -83,13 +88,16 @@ void ui_apply_telemetry(const TelemetryData &data) {
         lv_arc_set_value(objects.afr_arc, afr_tenths);
     }
     if (objects.pcb_temp_bar) {
-        lv_bar_set_value(objects.pcb_temp_bar, clamp_i32(lroundf(data.pcb_temp_f), 25, 120), LV_ANIM_OFF);
+        // Zones: 25–70 / 70–100 / 100–120
+        segment_bar_set_value(objects.pcb_temp_bar, clamp_i32(lroundf(data.pcb_temp_f), 25, 120));
     }
     if (objects.iat_temp_bar) {
-        lv_bar_set_value(objects.iat_temp_bar, clamp_i32(lroundf(data.iat_f), 25, 200), LV_ANIM_OFF);
+        // Zones: 25–100 / 100–140 / 140–200
+        segment_bar_set_value(objects.iat_temp_bar, clamp_i32(lroundf(data.iat_f), 25, 200));
     }
     if (objects.bar_2) {
-        lv_bar_set_value(objects.bar_2, clamp_i32(data.fan_pwm_pct, 0, 100), LV_ANIM_OFF);
+        // Zones: 0–30 / 30–70 / 70–100
+        segment_bar_set_value(objects.bar_2, clamp_i32(data.fan_pwm_pct, 0, 100));
     }
 
     if (objects.voltage_value_label && objects.voltage_bar) {

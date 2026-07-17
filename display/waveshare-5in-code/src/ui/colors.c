@@ -6,6 +6,7 @@ const uint32_t common_000000 = 0x000000;
 const uint32_t common_008eff = 0x008eff;
 const uint32_t common_08283a = 0x08283a;
 const uint32_t common_0c9bea = 0x0c9bea;
+const uint32_t common_0cea3d = 0x0cea3d;
 const uint32_t common_3d3d3d = 0x3d3d3d;
 const uint32_t common_cad670 = 0xcad670;
 const uint32_t common_ea0c0c = 0xea0c0c;
